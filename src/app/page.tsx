@@ -8,8 +8,13 @@ import { WorkoutCard } from "@/components/dashboard/WorkoutCard";
 import { getJournalEntries } from "@/lib/journal";
 import { getWorkoutSessions } from "@/lib/workouts";
 
-export default async function Home() {
-  const [journalEntries, workoutSessions] = await Promise.all([
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ google_error?: string }>;
+}) {
+  const [{ google_error: googleError }, journalEntries, workoutSessions] = await Promise.all([
+    searchParams,
     getJournalEntries(),
     getWorkoutSessions(),
   ]);
@@ -19,7 +24,7 @@ export default async function Home() {
       <Header />
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-5 px-6 py-8 sm:grid-cols-2 lg:grid-cols-3">
         <TasksCard />
-        <EventsCard />
+        <EventsCard error={googleError} />
         <HabitsCard />
         <FinanceCard />
         <JournalCard entries={journalEntries} />

@@ -44,6 +44,15 @@ ANTHROPIC_API_KEY=<your-anthropic-api-key>
 
 Also server-only — read inside the `parseWorkoutText` Server Action.
 
+The Upcoming Events card needs a Google OAuth client (Calendar API, read-only access):
+
+```
+GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
+```
+
+Create these in a [Google Cloud project](https://console.cloud.google.com/apis/credentials) with the Calendar API enabled. The redirect URI registered in Google Cloud Console must exactly match `<your-deployed-origin>/api/auth/callback/google` — add one entry per origin you use (production, any preview URLs, `http://localhost:3000` for local dev). Both variables are server-only.
+
 ## Supabase
 
 Supabase client helpers live in `src/lib/supabase/`:
@@ -61,6 +70,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260802000000_create_journal_entries.sql` — creates the `journal_entries` table (`entry_date`, `content`, `created_at`) backing the Journal card.
 - `20260802130000_scope_journal_entries_to_user.sql` — adds a `user_id` column and replaces the original open-access policies with ones scoped to `auth.uid()`. **Run this after creating your Supabase user** (Authentication → Users in the dashboard) — it backfills any pre-existing rows to that one account, which only works for a single-user setup.
 - `20260802140000_create_workout_tables.sql` — creates `workout_sessions`, `session_exercises`, and `exercise_sets` (one session has many exercises, each exercise has many sets) backing the Weight Training card. RLS is scoped to `auth.uid()` from the start — `workout_sessions` checks `user_id` directly, and the child tables check ownership via the parent session.
+- `20260802150000_create_google_calendar_connections.sql` — creates `google_calendar_connections` (one row per user: access token, refresh token, expiry) backing the Upcoming Events card. RLS is scoped to `auth.uid()`, and the table is only ever touched by server-side code — the anon/browser client never reads or writes it.
 
 ### Journal
 
@@ -81,6 +91,16 @@ To attach a voice memo: record it on your phone, upload the audio file via the "
 
 The parsed result is never saved directly — it populates the same editable builder used for manual entry, so you can fix anything before it's written to the database.
 
+### Google Calendar
+
+- `src/app/api/auth/google/route.ts` — starts the OAuth flow: redirects to Google's consent screen with `access_type=offline` + `prompt=consent` (so a refresh token is issued every time, not just on first consent) and a random `state` value stashed in a short-lived, `httpOnly` cookie for CSRF protection.
+- `src/app/api/auth/callback/google/route.ts` — verifies `state`, exchanges the authorization code for tokens, and upserts them into `google_calendar_connections` for the signed-in user. Redirects back to the dashboard, adding a `?google_error=...` param on failure (surfaced as an inline message on the Events card).
+- `src/lib/google-calendar.ts` — server-only: `isGoogleCalendarConnected()`, `getUpcomingEvents()` (refreshes the access token first if it's expired or about to expire, persisting the new one), and `revokeGoogleToken()`.
+- `src/app/actions/google-calendar.ts` — `disconnectGoogleCalendar` Server Action: revokes the token with Google and deletes the stored connection.
+- `src/components/dashboard/EventsCard.tsx` — shows a "Connect Google Calendar" button when there's no connection, otherwise the next few events plus a "Disconnect" link.
+
+The Calendar scope requested is read-only (`calendar.readonly`). Tokens are stored as plain columns protected by RLS and are only ever read by server-side code — there's no application-layer encryption on top of that, worth revisiting if this ever stops being a single-user app.
+
 ### Authentication
 
 The dashboard requires a signed-in Supabase user — there's no self-serve signup, since this is a single-user app. Create your account directly in the Supabase dashboard (Authentication → Users → Add user), then sign in at `/login` with that email and password.
@@ -96,8 +116,9 @@ Sessions persist across browser restarts via Supabase's cookie-based refresh tok
 
 1. Push this repository to GitHub (or your Git provider of choice).
 2. Import the project into [Vercel](https://vercel.com/new).
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as Environment Variables in the Vercel project settings, using your Supabase project's values.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` as Environment Variables in the Vercel project settings.
 4. Deploy. Vercel will detect the Next.js framework automatically.
+5. In Google Cloud Console, make sure `https://<your-vercel-domain>/api/auth/callback/google` is registered as an authorized redirect URI for the OAuth client.
 
 ## Learn More
 

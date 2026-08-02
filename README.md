@@ -50,7 +50,8 @@ Most dashboard widgets (`src/components/dashboard/`) currently render placeholde
 
 SQL migrations live in `supabase/migrations/`. Apply them either via the [Supabase CLI](https://supabase.com/docs/guides/cli) (`supabase db push`) or by pasting the file contents into the SQL Editor in your Supabase project dashboard.
 
-- `20260802000000_create_journal_entries.sql` — creates the `journal_entries` table (`entry_date`, `content`, `created_at`) backing the Journal card. RLS is enabled with permissive read/insert policies since the app has no authentication yet; tighten these once you add auth.
+- `20260802000000_create_journal_entries.sql` — creates the `journal_entries` table (`entry_date`, `content`, `created_at`) backing the Journal card.
+- `20260802130000_scope_journal_entries_to_user.sql` — adds a `user_id` column and replaces the original open-access policies with ones scoped to `auth.uid()`. **Run this after creating your Supabase user** (Authentication → Users in the dashboard) — it backfills any pre-existing rows to that one account, which only works for a single-user setup.
 
 ### Journal
 
@@ -60,6 +61,17 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `src/components/dashboard/JournalCard.tsx` — upload-and-transcribe control, the textarea + save button, and the entry list UI.
 
 To attach a voice memo: record it on your phone, upload the audio file via the "Upload & Transcribe" control, review/edit the transcribed text that appears in the textarea, then save as usual. Uploads are capped at 25MB (Whisper's own limit) via `serverActions.bodySizeLimit` in `next.config.ts`. Accepted formats: m4a (iPhone Voice Memos' default), mp3, mp4, wav, aac, webm, ogg, and flac — the file's extension is used to set the correct MIME type before it's sent to Whisper, since mobile browsers often report the wrong one.
+
+### Authentication
+
+The dashboard requires a signed-in Supabase user — there's no self-serve signup, since this is a single-user app. Create your account directly in the Supabase dashboard (Authentication → Users → Add user), then sign in at `/login` with that email and password.
+
+- `src/lib/supabase/middleware.ts` — redirects unauthenticated requests to `/login`, and signed-in users away from `/login`, on every route.
+- `src/app/actions/auth.ts` — `signIn` and `signOut` Server Actions.
+- `src/app/login/page.tsx` + `src/components/auth/LoginForm.tsx` — the login form.
+- The `addJournalEntry` and `transcribeAudio` Server Actions also check for a signed-in user directly, as defense in depth beyond the route-level redirect.
+
+Sessions persist across browser restarts via Supabase's cookie-based refresh token — signing in once is enough; you won't need to log in again unless you explicitly sign out or the cookies are cleared.
 
 ## Deploying to Vercel
 

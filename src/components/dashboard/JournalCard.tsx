@@ -63,7 +63,9 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
         <input
           type="file"
           name="audio"
-          accept="audio/*"
+          // Plain "audio/*" grays out .m4a in iOS's file picker (Voice
+          // Memos' default export format), so list extensions explicitly.
+          accept="audio/*,.m4a,.mp3,.mp4,.wav,.aac,.webm,.ogg,.flac"
           required
           className="min-w-0 text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200 sm:flex-1"
         />

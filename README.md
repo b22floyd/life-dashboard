@@ -26,6 +26,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
+> **Key format:** Use the **legacy anon key** (starts with `eyJ...`), not the newer "publishable" key (starts with `sb_publishable_...`). The `@supabase/supabase-js` version pinned here (2.111.0) rejects the publishable format with `Invalid API key`. Only switch to publishable keys after confirming the installed `supabase-js` version supports them.
+
 ## Supabase
 
 Supabase client helpers live in `src/lib/supabase/`:

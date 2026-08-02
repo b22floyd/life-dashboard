@@ -59,7 +59,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `src/app/actions/transcribe.ts` — `transcribeAudio` is a Server Action that sends an uploaded audio file to OpenAI's Whisper API and returns the transcribed text. Runs entirely server-side so `OPENAI_API_KEY` stays private.
 - `src/components/dashboard/JournalCard.tsx` — upload-and-transcribe control, the textarea + save button, and the entry list UI.
 
-To attach a voice memo: record it on your phone, upload the audio file via the "Upload & Transcribe" control, review/edit the transcribed text that appears in the textarea, then save as usual. Uploads are capped at 25MB (Whisper's own limit) via `serverActions.bodySizeLimit` in `next.config.ts`.
+To attach a voice memo: record it on your phone, upload the audio file via the "Upload & Transcribe" control, review/edit the transcribed text that appears in the textarea, then save as usual. Uploads are capped at 25MB (Whisper's own limit) via `serverActions.bodySizeLimit` in `next.config.ts`. Accepted formats: m4a (iPhone Voice Memos' default), mp3, mp4, wav, aac, webm, ogg, and flac — the file's extension is used to set the correct MIME type before it's sent to Whisper, since mobile browsers often report the wrong one.
 
 ## Deploying to Vercel
 

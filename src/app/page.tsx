@@ -2,10 +2,13 @@ import { Header } from "@/components/dashboard/Header";
 import { TasksCard } from "@/components/dashboard/TasksCard";
 import { HabitsCard } from "@/components/dashboard/HabitsCard";
 import { EventsCard } from "@/components/dashboard/EventsCard";
-import { NotesCard } from "@/components/dashboard/NotesCard";
 import { FinanceCard } from "@/components/dashboard/FinanceCard";
+import { JournalCard } from "@/components/dashboard/JournalCard";
+import { getJournalEntries } from "@/lib/journal";
 
-export default function Home() {
+export default async function Home() {
+  const journalEntries = await getJournalEntries();
+
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
       <Header />
@@ -14,7 +17,7 @@ export default function Home() {
         <EventsCard />
         <HabitsCard />
         <FinanceCard />
-        <NotesCard />
+        <JournalCard entries={journalEntries} />
       </main>
     </div>
   );

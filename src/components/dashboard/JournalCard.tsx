@@ -58,19 +58,19 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
       <form
         ref={audioFormRef}
         action={transcribeFormAction}
-        className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-zinc-300 p-3 dark:border-zinc-700"
+        className="mb-3 flex flex-col gap-3 rounded-lg border border-dashed border-zinc-300 p-3 dark:border-zinc-700 sm:flex-row sm:flex-wrap sm:items-center"
       >
         <input
           type="file"
           name="audio"
           accept="audio/*"
           required
-          className="flex-1 text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200"
+          className="min-w-0 text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200 sm:flex-1"
         />
         <button
           type="submit"
           disabled={transcribing}
-          className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="w-full shrink-0 rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:w-auto"
         >
           {transcribing ? "Transcribing…" : "Upload & Transcribe"}
         </button>

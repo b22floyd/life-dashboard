@@ -16,6 +16,14 @@ export async function addJournalEntry(
   }
 
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You must be signed in to save journal entries." };
+  }
+
   const { error } = await supabase.from("journal_entries").insert({
     content,
     entry_date: new Date().toISOString().slice(0, 10),

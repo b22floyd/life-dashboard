@@ -1,5 +1,7 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
+
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // Whisper's own file size cap.
 
 // Whisper's documented formats, plus aac (commonly produced by non-Apple
@@ -37,6 +39,14 @@ export async function transcribeAudio(
 
   if (file.size > MAX_AUDIO_BYTES) {
     return { error: "Audio file is too large (25MB max)." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You must be signed in to transcribe audio." };
   }
 
   const extension = getExtension(file.name);

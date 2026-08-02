@@ -4,10 +4,15 @@ import { HabitsCard } from "@/components/dashboard/HabitsCard";
 import { EventsCard } from "@/components/dashboard/EventsCard";
 import { FinanceCard } from "@/components/dashboard/FinanceCard";
 import { JournalCard } from "@/components/dashboard/JournalCard";
+import { WorkoutCard } from "@/components/dashboard/WorkoutCard";
 import { getJournalEntries } from "@/lib/journal";
+import { getWorkoutSessions } from "@/lib/workouts";
 
 export default async function Home() {
-  const journalEntries = await getJournalEntries();
+  const [journalEntries, workoutSessions] = await Promise.all([
+    getJournalEntries(),
+    getWorkoutSessions(),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
@@ -18,6 +23,7 @@ export default async function Home() {
         <HabitsCard />
         <FinanceCard />
         <JournalCard entries={journalEntries} />
+        <WorkoutCard sessions={workoutSessions} />
       </main>
     </div>
   );

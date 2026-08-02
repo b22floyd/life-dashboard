@@ -1,6 +1,6 @@
 # Life Dashboard
 
-A personal life dashboard built with Next.js, Tailwind CSS, and Supabase — tasks, habits, upcoming events, a daily journal, and a finance snapshot in one place.
+A personal life dashboard built with Next.js, Tailwind CSS, and Supabase — tasks, habits, upcoming events, a daily journal, weight training logs, and a finance snapshot in one place.
 
 ## Getting Started
 
@@ -36,6 +36,14 @@ OPENAI_API_KEY=<your-openai-api-key>
 
 This key is server-only (no `NEXT_PUBLIC_` prefix) and is only ever read inside the `transcribeAudio` Server Action — it's never sent to the browser.
 
+Freeform workout parsing in the Weight Training card needs an Anthropic API key:
+
+```
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+```
+
+Also server-only — read inside the `parseWorkoutText` Server Action.
+
 ## Supabase
 
 Supabase client helpers live in `src/lib/supabase/`:
@@ -52,6 +60,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 
 - `20260802000000_create_journal_entries.sql` — creates the `journal_entries` table (`entry_date`, `content`, `created_at`) backing the Journal card.
 - `20260802130000_scope_journal_entries_to_user.sql` — adds a `user_id` column and replaces the original open-access policies with ones scoped to `auth.uid()`. **Run this after creating your Supabase user** (Authentication → Users in the dashboard) — it backfills any pre-existing rows to that one account, which only works for a single-user setup.
+- `20260802140000_create_workout_tables.sql` — creates `workout_sessions`, `session_exercises`, and `exercise_sets` (one session has many exercises, each exercise has many sets) backing the Weight Training card. RLS is scoped to `auth.uid()` from the start — `workout_sessions` checks `user_id` directly, and the child tables check ownership via the parent session.
 
 ### Journal
 
@@ -61,6 +70,16 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `src/components/dashboard/JournalCard.tsx` — upload-and-transcribe control, the textarea + save button, and the entry list UI.
 
 To attach a voice memo: record it on your phone, upload the audio file via the "Upload & Transcribe" control, review/edit the transcribed text that appears in the textarea, then save as usual. Uploads are capped at 25MB (Whisper's own limit) via `serverActions.bodySizeLimit` in `next.config.ts`. Accepted formats: m4a (iPhone Voice Memos' default), mp3, mp4, wav, aac, webm, ogg, and flac — the file's extension is used to set the correct MIME type before it's sent to Whisper, since mobile browsers often report the wrong one.
+
+### Weight Training
+
+- `src/lib/workout-utils.ts` — pure, client-safe types and helpers (`getExerciseNames`, `getMaxWeightSeries`) shared by the server data layer and the chart component.
+- `src/lib/workouts.ts` — `getWorkoutSessions()` fetches sessions with their nested exercises and sets, newest-first, for Server Components.
+- `src/app/actions/workout.ts` — `parseWorkoutText` sends a freeform description to Claude (`claude-opus-5`, structured output via a Zod schema) and returns extracted exercises/sets; `saveWorkoutSession` inserts the (possibly edited) result into the three tables.
+- `src/components/dashboard/WorkoutCard.tsx` — the "Quick log" textarea + Parse button, an editable exercise/set builder (also usable directly for manual entry — just click "+ Add Exercise" without parsing anything), and the session history list.
+- `src/components/dashboard/ProgressChart.tsx` — an exercise picker plus a small SVG line chart of max weight per session over time.
+
+The parsed result is never saved directly — it populates the same editable builder used for manual entry, so you can fix anything before it's written to the database.
 
 ### Authentication
 

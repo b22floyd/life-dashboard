@@ -2,10 +2,12 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { addJournalEntry, type JournalFormState } from "@/app/actions/journal";
+import { transcribeAudio, type TranscribeState } from "@/app/actions/transcribe";
 import type { JournalEntry } from "@/lib/journal";
 import { WidgetCard } from "./WidgetCard";
 
-const initialState: JournalFormState = null;
+const initialFormState: JournalFormState = null;
+const initialTranscribeState: TranscribeState = null;
 
 function formatEntryDate(entryDate: string) {
   return new Date(`${entryDate}T00:00:00`).toLocaleDateString("en-US", {
@@ -18,9 +20,14 @@ function formatEntryDate(entryDate: string) {
 export function JournalCard({ entries }: { entries: JournalEntry[] }) {
   const [state, formAction, pending] = useActionState(
     addJournalEntry,
-    initialState,
+    initialFormState,
   );
+  const [transcribeState, transcribeFormAction, transcribing] =
+    useActionState(transcribeAudio, initialTranscribeState);
+
   const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const audioFormRef = useRef<HTMLFormElement>(null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -32,8 +39,48 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
     }
   }, [state, pending]);
 
+  useEffect(() => {
+    if (!transcribeState) return;
+
+    if ("text" in transcribeState && textareaRef.current) {
+      const existing = textareaRef.current.value.trim();
+      textareaRef.current.value = existing
+        ? `${existing}\n\n${transcribeState.text}`
+        : transcribeState.text;
+      textareaRef.current.focus();
+    }
+
+    audioFormRef.current?.reset();
+  }, [transcribeState]);
+
   return (
     <WidgetCard title="Journal" className="lg:col-span-2">
+      <form
+        ref={audioFormRef}
+        action={transcribeFormAction}
+        className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-zinc-300 p-3 dark:border-zinc-700"
+      >
+        <input
+          type="file"
+          name="audio"
+          accept="audio/*"
+          required
+          className="flex-1 text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200"
+        />
+        <button
+          type="submit"
+          disabled={transcribing}
+          className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          {transcribing ? "Transcribing…" : "Upload & Transcribe"}
+        </button>
+        {transcribeState && "error" in transcribeState && (
+          <p className="w-full text-sm text-red-600 dark:text-red-400">
+            {transcribeState.error}
+          </p>
+        )}
+      </form>
+
       <form
         ref={formRef}
         action={formAction}
@@ -43,10 +90,11 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
         className="flex flex-col gap-3"
       >
         <textarea
+          ref={textareaRef}
           name="content"
           rows={4}
           required
-          placeholder="What happened today?"
+          placeholder="What happened today? Write here or upload a voice memo above."
           className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
         />
         {state?.error && (

@@ -1,6 +1,6 @@
 # Life Dashboard
 
-A personal life dashboard built with Next.js, Tailwind CSS, and Supabase — tasks, habits, upcoming events, notes, and a finance snapshot in one place.
+A personal life dashboard built with Next.js, Tailwind CSS, and Supabase — tasks, habits, upcoming events, a daily journal, and a finance snapshot in one place.
 
 ## Getting Started
 
@@ -34,7 +34,19 @@ Supabase client helpers live in `src/lib/supabase/`:
 - `server.ts` — server client for use in Server Components and Route Handlers.
 - `middleware.ts` — refreshes the auth session; wired up in `src/proxy.ts`.
 
-The dashboard widgets (`src/components/dashboard/`) currently render placeholder data. Connect them to Supabase tables as your schema evolves — for example, a `tasks` table for `TasksCard`, a `habits` table for `HabitsCard`, and so on.
+Most dashboard widgets (`src/components/dashboard/`) currently render placeholder data. Connect them to Supabase tables as your schema evolves — for example, a `tasks` table for `TasksCard`, a `habits` table for `HabitsCard`, and so on. The Journal card is already wired up end-to-end (see below).
+
+### Database Schema
+
+SQL migrations live in `supabase/migrations/`. Apply them either via the [Supabase CLI](https://supabase.com/docs/guides/cli) (`supabase db push`) or by pasting the file contents into the SQL Editor in your Supabase project dashboard.
+
+- `20260802000000_create_journal_entries.sql` — creates the `journal_entries` table (`entry_date`, `content`, `created_at`) backing the Journal card. RLS is enabled with permissive read/insert policies since the app has no authentication yet; tighten these once you add auth.
+
+### Journal
+
+- `src/lib/journal.ts` — `getJournalEntries()` fetches entries newest-first for Server Components.
+- `src/app/actions/journal.ts` — `addJournalEntry` is a Server Action that inserts a new entry and revalidates the dashboard.
+- `src/components/dashboard/JournalCard.tsx` — the textarea + save button + entry list UI.
 
 ## Deploying to Vercel
 

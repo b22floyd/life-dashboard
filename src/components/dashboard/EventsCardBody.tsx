@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { CalendarEvent } from "@/lib/google-calendar-utils";
 import {
   formatEventDate,
@@ -9,8 +10,14 @@ import {
 } from "@/lib/google-calendar-utils";
 import { useHasMounted } from "@/lib/use-has-mounted";
 
+const TABS = ["today", "upcoming"] as const;
+type Tab = (typeof TABS)[number];
+
+const TAB_LABELS: Record<Tab, string> = { today: "Today", upcoming: "Upcoming" };
+
 export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
   const mounted = useHasMounted();
+  const [tab, setTab] = useState<Tab>("today");
 
   if (events.length === 0) {
     return <p className="text-sm text-zinc-400 dark:text-zinc-500">No upcoming events.</p>;
@@ -35,43 +42,46 @@ export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
     }
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      {todayEvents.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-            Today
-          </h3>
-          <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
-            {todayEvents.map((event) => (
-              <li key={event.id} className="flex gap-3 text-sm">
-                <span className="w-20 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">
-                  {formatEventTime(event)}
-                </span>
-                <span className="text-zinc-700 dark:text-zinc-300">{event.title}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+  const visibleEvents = tab === "today" ? todayEvents : upcomingEvents;
 
-      {upcomingEvents.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-            Upcoming
-          </h3>
-          <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
-            {upcomingEvents.map((event) => (
-              <li key={event.id} className="flex gap-3 text-sm">
-                <span className="w-28 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">
-                  {formatEventDate(event)}
-                  {!event.isAllDay && `, ${formatEventTime(event)}`}
-                </span>
-                <span className="text-zinc-700 dark:text-zinc-300">{event.title}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
+        {TABS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={
+              tab === key
+                ? "border-b-2 border-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                : "border-b-2 border-transparent px-3 py-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+            }
+          >
+            {TAB_LABELS[key]}
+          </button>
+        ))}
+      </div>
+
+      {visibleEvents.length === 0 ? (
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          {tab === "today" ? "No events today." : "No upcoming events."}
+        </p>
+      ) : (
+        <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
+          {visibleEvents.map((event) => (
+            <li key={event.id} className="flex gap-3 text-sm">
+              <span className="w-28 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">
+                {tab === "today"
+                  ? formatEventTime(event)
+                  : `${formatEventDate(event)}${
+                      !event.isAllDay ? `, ${formatEventTime(event)}` : ""
+                    }`}
+              </span>
+              <span className="text-zinc-700 dark:text-zinc-300">{event.title}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

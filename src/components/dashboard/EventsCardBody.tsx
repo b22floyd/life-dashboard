@@ -10,10 +10,10 @@ import {
 } from "@/lib/google-calendar-utils";
 import { useHasMounted } from "@/lib/use-has-mounted";
 
-const TABS = ["today", "upcoming"] as const;
+const TABS = ["today", "tomorrow", "upcoming"] as const;
 type Tab = (typeof TABS)[number];
 
-const TAB_LABELS: Record<Tab, string> = { today: "Today", upcoming: "Upcoming" };
+const TAB_LABELS: Record<Tab, string> = { today: "Today", tomorrow: "Tomorrow", upcoming: "Upcoming" };
 
 export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
   const mounted = useHasMounted();
@@ -31,18 +31,24 @@ export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
   }
 
   const now = new Date();
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const todayEvents: CalendarEvent[] = [];
+  const tomorrowEvents: CalendarEvent[] = [];
   const upcomingEvents: CalendarEvent[] = [];
 
   for (const event of events) {
-    if (isSameLocalDay(parseEventDate(event), now)) {
+    const eventDate = parseEventDate(event);
+    if (isSameLocalDay(eventDate, now)) {
       todayEvents.push(event);
+    } else if (isSameLocalDay(eventDate, tomorrow)) {
+      tomorrowEvents.push(event);
     } else {
       upcomingEvents.push(event);
     }
   }
 
-  const visibleEvents = tab === "today" ? todayEvents : upcomingEvents;
+  const visibleEvents =
+    tab === "today" ? todayEvents : tab === "tomorrow" ? tomorrowEvents : upcomingEvents;
 
   return (
     <div className="flex flex-col gap-3">
@@ -65,7 +71,11 @@ export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
 
       {visibleEvents.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          {tab === "today" ? "No events today." : "No upcoming events."}
+          {tab === "today"
+            ? "No events today."
+            : tab === "tomorrow"
+              ? "No events tomorrow."
+              : "No upcoming events."}
         </p>
       ) : (
         <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">

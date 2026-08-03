@@ -33,10 +33,18 @@ function isDueTodayOrOverdue(dueDate: string): boolean {
   return dateKey(due) <= dateKey(new Date());
 }
 
-const TABS = ["today", "future"] as const;
+function isDueTomorrow(dueDate: string): boolean {
+  const due = parseDueDate(dueDate);
+  if (Number.isNaN(due.getTime())) return false;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return dateKey(due) === dateKey(tomorrow);
+}
+
+const TABS = ["today", "tomorrow", "upcoming"] as const;
 type Tab = (typeof TABS)[number];
 
-const TAB_LABELS: Record<Tab, string> = { today: "Today", future: "Future" };
+const TAB_LABELS: Record<Tab, string> = { today: "Today", tomorrow: "Tomorrow", upcoming: "Upcoming" };
 
 export function TasksCardBody({
   projects,
@@ -80,11 +88,19 @@ export function TasksCardBody({
     () => sortedTasks.filter((task) => task.dueDate && isDueTodayOrOverdue(task.dueDate)),
     [sortedTasks],
   );
-  const futureTasks = useMemo(
-    () => sortedTasks.filter((task) => !task.dueDate || !isDueTodayOrOverdue(task.dueDate)),
+  const tomorrowTasks = useMemo(
+    () => sortedTasks.filter((task) => task.dueDate && isDueTomorrow(task.dueDate)),
     [sortedTasks],
   );
-  const visibleTasks = tab === "today" ? todayTasks : futureTasks;
+  const upcomingTasks = useMemo(
+    () =>
+      sortedTasks.filter(
+        (task) => !task.dueDate || (!isDueTodayOrOverdue(task.dueDate) && !isDueTomorrow(task.dueDate)),
+      ),
+    [sortedTasks],
+  );
+  const visibleTasks =
+    tab === "today" ? todayTasks : tab === "tomorrow" ? tomorrowTasks : upcomingTasks;
 
   function toggleChecked(id: string) {
     setCheckedIds((current) => {
@@ -211,7 +227,11 @@ export function TasksCardBody({
         </p>
       ) : visibleTasks.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          {tab === "today" ? "Nothing due today." : "No upcoming tasks."}
+          {tab === "today"
+            ? "Nothing due today."
+            : tab === "tomorrow"
+              ? "Nothing due tomorrow."
+              : "No upcoming tasks."}
         </p>
       ) : (
         <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">

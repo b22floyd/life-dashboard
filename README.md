@@ -94,6 +94,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260803030000_create_personal_tasks.sql` — creates `personal_tasks` (`content`, `created_at`) backing the Personal Tasks card. RLS is scoped to `auth.uid()` with select/insert/delete policies — completing a task deletes its row rather than flagging it done, since there's no "view completed" feature.
 - `20260803040000_create_whoop_connections.sql` — creates `whoop_connections` (one row per user: access token, refresh token, expiry, scope) backing the Health card, following the exact same shape and RLS pattern as `google_calendar_connections`.
 - `20260804000000_add_workout_session_delete_policies.sql` — adds delete policies to `workout_sessions`, `session_exercises`, and `exercise_sets`, which previously only had select/insert policies. RLS applies to rows removed via `on delete cascade`, so deleting a session needs delete policies on the child tables too, not just the parent.
+- `20260805000000_create_habits.sql` — creates `habits` (`name`, `position`) and `daily_habit_completions` (`habit_id`, `completed_date`, unique per habit+date) backing the Habit Streaks card. RLS on `habits` is scoped to `auth.uid()` directly; `daily_habit_completions` has no `user_id` of its own, so its policies check ownership via a join back to `habits`, same pattern as `session_exercises` → `workout_sessions`. Also seeds the 8 starting habits (single-user assumption, same as the journal migration).
 
 ### Timezones
 
@@ -174,6 +175,22 @@ Sessions persist across browser restarts via Supabase's cookie-based refresh tok
 - `src/components/dashboard/RecoveryTrendChart.tsx` — a 7-day line chart of recovery score, styled the same way as the Weight Training progress chart (same SVG approach, hover tooltip, and date labels), with a fixed 0-100 y-axis since recovery is always a percentage.
 
 Whoop's API response shapes (recovery/cycle/sleep record fields) are implemented from their public developer docs and parsed defensively (missing/unscored records are treated as "no data" rather than thrown), but weren't verifiable against a live account from this environment — worth double-checking field names against your own data once connected. Tokens are stored as plain columns protected by RLS, same caveat as the Google Calendar connection above.
+
+### Habit Streaks
+
+A fully custom habit tracker, replacing the original hardcoded placeholder — add/rename/delete habits, reorder them manually (up/down arrows, no drag-and-drop library), check them off per day, and see a running streak, best streak ever, and a 30-day chain calendar per habit.
+
+- `src/lib/habit-utils.ts` — pure, client-safe types and the streak/calendar math:
+  - `computeHabitStreaks(habit, todayLocalDate)` implements the lenient streak rule: **within any rolling 7-day window, one missed day is forgiven; a second missed day in that same window resets the streak to 0** (and the window itself resets, so the two miss-days that caused the break don't keep forcing resets for another week). A forgiven miss day doesn't interrupt the streak count — the counter keeps incrementing through it, the same way a "streak freeze" works in other habit trackers. A not-yet-completed "today" is never judged as a miss; it's simply excluded from the evaluated range until it's actually marked done or the day passes. `best` is the highest the streak counter ever reached, computed from the same scan.
+  - `getChainCalendar(habit, todayLocalDate, days = 30)` returns the last 30 local calendar days (oldest first) with a `done` flag each, for the dot grid. Days before the habit existed just show as not-done (no separate "N/A" state).
+  - All date math is done as `"yyyy-mm-dd"` string arithmetic via a local `addDays` helper — never through `Date`'s UTC-based parsing — since streaks and the chain calendar both depend on the browser's local calendar day (see [Timezones](#timezones)).
+- `src/lib/habits.ts` — server-only `getHabits()`: fetches habits ordered by `position` with their nested completions, for the Server Component.
+- `src/app/actions/habits.ts` — `addHabit` (appends at the end, `position = max + 1`), `renameHabit`, `deleteHabit` (cascades to its completions), `reorderHabit(habitId, "up" | "down")` (swaps `position` with the immediate neighbor — no bulk reorder endpoint, since the UI only ever moves one habit one step at a time), `setHabitCompletion(habitId, date, completed)` (upserts or deletes a `daily_habit_completions` row).
+- `src/components/dashboard/HabitsCard.tsx` (Server Component, fetches data) + `HabitsCardBody.tsx` (Client Component) — the add-habit form, and the habit list. Streaks and the chain calendar are computed client-side against the browser's local date (mount-gated via `useHasMounted()`, same pattern as the timezone fixes elsewhere) rather than server-side, for the same reason: a Server Component can't know the user's real local "today". Each row: reorder arrows, a checkbox for today, the name (click to rename inline), a `🔥current · best N` badge, a delete button, and a row of 30 small dots (filled = done) underneath. Capped at `max-h-96 overflow-y-auto`, roughly 5 habits visible before scrolling, in the order you've set.
+
+Toggling, reordering, renaming, and deleting are all optimistic (the UI updates immediately, then reconciles with the server) following the same local-state-synced-from-props pattern used by Personal/Work Tasks and Weight Training's session delete.
+
+I verified the streak algorithm against a set of hand-worked cases (a single break within one window, two misses spaced more than 7 days apart correctly *not* compounding, and the two-miss-in-one-window reset) before wiring it into the UI — all matched the intended behavior exactly.
 
 ### Weather
 

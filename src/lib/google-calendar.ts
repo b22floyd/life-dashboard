@@ -101,7 +101,10 @@ export async function getUpcomingEvents(maxResults = 20): Promise<CalendarEvent[
 
   let response: Response;
   try {
-    response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
   } catch (error) {
     console.error("Failed to reach Google Calendar:", error);
     return null;

@@ -36,8 +36,13 @@ export async function updateSession(request: NextRequest) {
   // Google OAuth consent-screen verification, which needs a reachable
   // privacy policy URL).
   const isPrivacyPage = request.nextUrl.pathname.startsWith("/privacy");
+  // The weekly backup cron has no signed-in session — Vercel invokes it
+  // directly with no cookies — so it can't go through the login redirect.
+  // It's authorized separately inside the route via a CRON_SECRET bearer
+  // token instead.
+  const isCronRoute = request.nextUrl.pathname.startsWith("/api/cron");
 
-  if (!user && !isLoginPage && !isPrivacyPage) {
+  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

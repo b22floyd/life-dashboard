@@ -23,17 +23,25 @@ export async function Header() {
         <div className="flex items-center gap-4">
           <WeatherWidget initialSnapshot={weatherSnapshot} />
           {user && (
-            <form action={signOut} className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">
                 {user.email}
               </span>
-              <button
-                type="submit"
+              <a
+                href="/api/export"
                 className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                Sign Out
-              </button>
-            </form>
+                Export My Data
+              </a>
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Sign Out
+                </button>
+              </form>
+            </div>
           )}
         </div>
       </div>

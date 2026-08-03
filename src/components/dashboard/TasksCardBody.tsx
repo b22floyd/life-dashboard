@@ -5,9 +5,15 @@ import { useRouter } from "next/navigation";
 import { completeTodoistTask, saveTodoistProjectSelection } from "@/app/actions/todoist";
 import type { TodoistProject, TodoistTask } from "@/lib/todoist";
 
+function parseDueDate(dueDate: string): Date {
+  // Date-only strings ("2026-08-10") parse as UTC midnight, which can shift
+  // to the previous day in negative-offset timezones — force local midnight.
+  return new Date(dueDate.includes("T") ? dueDate : `${dueDate}T00:00:00`);
+}
+
 function formatDueDate(dueDate: string) {
   const hasTime = dueDate.includes("T");
-  const date = new Date(dueDate);
+  const date = parseDueDate(dueDate);
   if (Number.isNaN(date.getTime())) return dueDate;
   return date.toLocaleDateString(
     "en-US",
@@ -16,6 +22,21 @@ function formatDueDate(dueDate: string) {
       : { month: "short", day: "numeric" },
   );
 }
+
+function dateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function isDueTodayOrOverdue(dueDate: string): boolean {
+  const due = parseDueDate(dueDate);
+  if (Number.isNaN(due.getTime())) return false;
+  return dateKey(due) <= dateKey(new Date());
+}
+
+const TABS = ["today", "future"] as const;
+type Tab = (typeof TABS)[number];
+
+const TAB_LABELS: Record<Tab, string> = { today: "Today", future: "Future" };
 
 export function TasksCardBody({
   projects,
@@ -27,6 +48,7 @@ export function TasksCardBody({
   tasks: TodoistTask[] | null;
 }) {
   const router = useRouter();
+  const [tab, setTab] = useState<Tab>("today");
   const [editing, setEditing] = useState(selectedProjectIds.length === 0);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set(selectedProjectIds));
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -53,6 +75,16 @@ export function TasksCardBody({
       }),
     [localTasks],
   );
+
+  const todayTasks = useMemo(
+    () => sortedTasks.filter((task) => task.dueDate && isDueTodayOrOverdue(task.dueDate)),
+    [sortedTasks],
+  );
+  const futureTasks = useMemo(
+    () => sortedTasks.filter((task) => !task.dueDate || !isDueTodayOrOverdue(task.dueDate)),
+    [sortedTasks],
+  );
+  const visibleTasks = tab === "today" ? todayTasks : futureTasks;
 
   function toggleChecked(id: string) {
     setCheckedIds((current) => {
@@ -155,16 +187,35 @@ export function TasksCardBody({
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
+        {TABS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={
+              tab === key
+                ? "border-b-2 border-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                : "border-b-2 border-transparent px-3 py-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+            }
+          >
+            {TAB_LABELS[key]}
+          </button>
+        ))}
+      </div>
+
       {taskError && <p className="text-sm text-red-600 dark:text-red-400">{taskError}</p>}
       {tasks === null ? (
         <p className="text-sm text-red-600 dark:text-red-400">
           Couldn&apos;t load tasks from Todoist. Try again shortly.
         </p>
-      ) : sortedTasks.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">No active tasks.</p>
+      ) : visibleTasks.length === 0 ? (
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          {tab === "today" ? "Nothing due today." : "No upcoming tasks."}
+        </p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {sortedTasks.map((task) => (
+        <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
+          {visibleTasks.map((task) => (
             <li key={task.id} className="flex items-start gap-3">
               <input
                 type="checkbox"

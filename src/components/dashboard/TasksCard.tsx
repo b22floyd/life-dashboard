@@ -16,7 +16,7 @@ export async function TasksCard() {
   ]);
 
   return (
-    <WidgetCard title="Today's Tasks">
+    <WidgetCard title="Work Tasks">
       <TasksCardBody
         projects={projects}
         selectedProjectIds={selectedProjectIds}

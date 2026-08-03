@@ -53,7 +53,7 @@ GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
 
 Create these in a [Google Cloud project](https://console.cloud.google.com/apis/credentials) with the Calendar API enabled. The redirect URI registered in Google Cloud Console must exactly match `<your-deployed-origin>/api/auth/callback/google` — add one entry per origin you use (production, any preview URLs, `http://localhost:3000` for local dev). Both variables are server-only.
 
-The Today's Tasks card needs a Todoist API token:
+The Work Tasks card needs a Todoist API token:
 
 ```
 TODOIST_API_TOKEN=<your-todoist-api-token>
@@ -69,7 +69,7 @@ Supabase client helpers live in `src/lib/supabase/`:
 - `server.ts` — server client for use in Server Components and Route Handlers.
 - `middleware.ts` — refreshes the auth session; wired up in `src/proxy.ts`.
 
-Most dashboard widgets (`src/components/dashboard/`) currently render placeholder data. Connect them to Supabase tables as your schema evolves — for example, a `tasks` table for `TasksCard`, a `habits` table for `HabitsCard`, and so on. The Journal card is already wired up end-to-end (see below).
+A couple of dashboard widgets (`src/components/dashboard/`) — `HabitsCard`, `FinanceCard` — still render placeholder data. Connect them to Supabase tables as your schema evolves, following the same pattern as the cards below.
 
 ### Database Schema
 
@@ -81,7 +81,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260802150000_create_google_calendar_connections.sql` — creates `google_calendar_connections` (one row per user: access token, refresh token, expiry) backing the Upcoming Events card. RLS is scoped to `auth.uid()`, and the table is only ever touched by server-side code — the anon/browser client never reads or writes it.
 - `20260803000000_add_workout_session_category.sql` — adds a nullable `category` column to `workout_sessions`, constrained to `Chest`, `Back`, `Shoulder`, or `Leg`. Existing sessions default to `null` (uncategorized) and won't appear under any of the progress-chart tabs.
 - `20260803010000_require_workout_session_category.sql` — adds a `not valid` check constraint requiring `category is not null`. `not valid` means it only applies going forward (new inserts and updates) — existing null rows are left alone rather than being force-migrated or rejected retroactively.
-- `20260803020000_create_todoist_preferences.sql` — creates `todoist_preferences` (one row per user: `selected_project_ids`) backing the Today's Tasks card, so which Todoist project(s) you've chosen persists across visits. RLS is scoped to `auth.uid()`.
+- `20260803020000_create_todoist_preferences.sql` — creates `todoist_preferences` (one row per user: `selected_project_ids`) backing the Work Tasks card, so which Todoist project(s) you've chosen persists across visits. RLS is scoped to `auth.uid()`.
 
 ### Journal
 
@@ -102,13 +102,13 @@ To attach a voice memo: record it on your phone, upload the audio file via the "
 
 The parsed result is never saved directly — it populates the same editable builder used for manual entry, so you can fix anything (including the category) before it's written to the database. Claude doesn't infer the category from the description; it's always your own selection.
 
-### Todoist
+### Work Tasks (Todoist)
 
 - `src/lib/todoist.ts` — server-only: `getTodoistProjects()`, `getTodoistTasksForProjects()`, and `closeTodoistTask()` call the Todoist API directly with `TODOIST_API_TOKEN`; `getSelectedProjectIds()` reads the saved preference from Supabase. List responses are parsed defensively (a flat array or a `{results: [...]}` wrapper, whichever Todoist returns) since the exact response shape wasn't verifiable from this environment — worth confirming against a real account.
 - `src/app/actions/todoist.ts` — `saveTodoistProjectSelection` upserts the chosen project IDs; `completeTodoistTask` closes a task in Todoist (via the API, not just locally) and revalidates the dashboard.
 - `src/components/dashboard/TasksCard.tsx` (Server Component, fetches data) + `TasksCardBody.tsx` (Client Component, the interactive part) — a project picker (checkboxes, multi-select) shown until you've saved a selection, after that the task list with due dates and checkboxes. Checking a task off removes it immediately (optimistic) and calls Todoist to actually complete it; on failure the task reappears once fresh data loads. A "Change projects" link reopens the picker at any time.
 
-Tasks shown are whatever's currently active (not completed) in the selected project(s) — not filtered to due-today specifically. Tasks with a due date sort first (soonest first); tasks with no due date sort last.
+Tasks shown are whatever's currently active (not completed) in the selected project(s). Two tabs split them by due date: **Today** is due-today-or-overdue (compared by calendar date, not exact time); **Future** is everything else, including tasks with no due date at all. Within each tab, dated tasks sort soonest-first and undated tasks sort last. Both tabs cap the visible list height to roughly 5 tasks (`max-h-60`) with a scrollbar for the rest.
 
 ### Google Calendar
 

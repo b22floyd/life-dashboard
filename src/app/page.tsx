@@ -41,8 +41,8 @@ export default async function Home({
         <HabitsCard />
         <FinanceCard />
         <JournalCard entries={journalEntries} />
-        <WorkoutCard sessions={workoutSessions} />
         <HealthCard error={whoopError} errorDetail={whoopErrorDetail} />
+        <WorkoutCard sessions={workoutSessions} />
       </main>
     </div>
   );

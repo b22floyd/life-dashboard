@@ -18,6 +18,7 @@ import {
   type CleaningFrequency,
   type CleaningTaskWithStatus,
 } from "@/lib/cleaning-utils";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 const initialAddState: AddCleaningTaskState = null;
 
@@ -27,8 +28,20 @@ function statusLabel(task: CleaningTaskWithStatus): string {
   return `done ${task.daysSinceCompleted}d ago, due in ${task.daysUntilDue}d`;
 }
 
+// nextDueAt is an absolute instant, so formatting it (unlike the relative
+// "Nd ago"/"due in Nd" labels above) is timezone-dependent — only called
+// once mounted, same as every other absolute-timestamp display in this app.
+function formatNextDue(nextDueAt: string) {
+  return new Date(nextDueAt).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] }) {
   const router = useRouter();
+  const mounted = useHasMounted();
 
   const [addState, addFormAction, isAdding] = useActionState(addCleaningTask, initialAddState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -57,6 +70,8 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+
+  const [recentlyCompletedExpanded, setRecentlyCompletedExpanded] = useState(false);
 
   function handleToggle(task: CleaningTaskWithStatus) {
     setActionError(null);
@@ -128,6 +143,13 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
   // handlers above, keyed off localTasks) — they're just not rendered until
   // they fall within the window, recomputed fresh on every render.
   const visibleTasks = localTasks.filter((task) => isCleaningTaskVisible(task));
+
+  // The complement of visibleTasks that's also been completed at least once
+  // — a task that's simply never been done yet is "due now" and shows up in
+  // the main list above, not here. Sorted soonest-due-next first.
+  const recentlyCompletedTasks = localTasks
+    .filter((task) => task.lastCompletedAt !== null && !isCleaningTaskVisible(task))
+    .sort((a, b) => (a.nextDueAt ?? "").localeCompare(b.nextDueAt ?? ""));
 
   return (
     <div className="flex flex-col gap-3">
@@ -254,6 +276,43 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
           ))}
         </ul>
       )}
+
+      <div className="mt-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+        <button
+          type="button"
+          onClick={() => setRecentlyCompletedExpanded((expanded) => !expanded)}
+          aria-expanded={recentlyCompletedExpanded}
+          className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+        >
+          <span>{recentlyCompletedExpanded ? "▾" : "▸"}</span>
+          Recently completed
+          {recentlyCompletedTasks.length > 0 && ` (${recentlyCompletedTasks.length})`}
+        </button>
+
+        {recentlyCompletedExpanded && (
+          <div className="mt-3 flex max-h-60 flex-col gap-2 overflow-y-auto">
+            {recentlyCompletedTasks.length === 0 ? (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500">
+                Nothing recently completed.
+              </p>
+            ) : (
+              recentlyCompletedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60"
+                >
+                  <span className="min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300">
+                    {task.name}
+                  </span>
+                  <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+                    {mounted && task.nextDueAt ? `Next due ${formatNextDue(task.nextDueAt)}` : "…"}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

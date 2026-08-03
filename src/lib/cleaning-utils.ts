@@ -28,6 +28,7 @@ export type CleaningTaskWithStatus = CleaningTask & {
   isDue: boolean;
   daysSinceCompleted: number | null; // null if never completed
   daysUntilDue: number | null; // null if already due
+  nextDueAt: string | null; // ISO instant, or null if never completed
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -49,11 +50,13 @@ export function computeCleaningStatus(
       isDue: true,
       daysSinceCompleted: null,
       daysUntilDue: null,
+      nextDueAt: null,
     };
   }
 
-  const elapsedMs = now.getTime() - new Date(lastCompletedAt).getTime();
   const intervalMs = CLEANING_FREQUENCY_INTERVAL_DAYS[task.frequency] * DAY_MS;
+  const lastCompletedMs = new Date(lastCompletedAt).getTime();
+  const elapsedMs = now.getTime() - lastCompletedMs;
   const isDue = elapsedMs >= intervalMs;
 
   return {
@@ -62,6 +65,7 @@ export function computeCleaningStatus(
     isDue,
     daysSinceCompleted: Math.max(0, Math.floor(elapsedMs / DAY_MS)),
     daysUntilDue: isDue ? null : Math.ceil((intervalMs - elapsedMs) / DAY_MS),
+    nextDueAt: new Date(lastCompletedMs + intervalMs).toISOString(),
   };
 }
 

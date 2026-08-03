@@ -178,7 +178,11 @@ export async function getHealthSnapshot(): Promise<HealthSnapshot | null> {
 }
 
 // Empty array (rather than null) on failure — the trend chart already
-// renders a friendly "no data" state for zero points.
+// renders a friendly "no data" state for zero points. Returns raw ISO
+// timestamps rather than pre-bucketing into calendar days here — this runs
+// server-side and has no idea what the user's local timezone is, so slicing
+// `created_at` into a "yyyy-mm-dd" date here would bucket some points onto
+// the wrong day. The chart buckets/formats them client-side instead.
 export async function getRecoveryTrend(days = 7): Promise<RecoveryPoint[]> {
   const accessToken = await getValidAccessToken();
   if (!accessToken) return [];
@@ -190,8 +194,8 @@ export async function getRecoveryTrend(days = 7): Promise<RecoveryPoint[]> {
   return (data?.records ?? [])
     .filter((record) => record.score_state === "SCORED" && record.score)
     .map((record) => ({
-      date: record.created_at.slice(0, 10),
+      timestamp: record.created_at,
       recoveryScore: Math.round(record.score!.recovery_score),
     }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }

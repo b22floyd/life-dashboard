@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { isValidDateString } from "@/lib/date-utils";
 import { createClient } from "@/lib/supabase/server";
 import { WORKOUT_CATEGORIES, type WorkoutCategory } from "@/lib/workout-utils";
 
@@ -88,6 +89,7 @@ export async function parseWorkoutText(
 export type WorkoutPayload = {
   name: string | null;
   category: WorkoutCategory | null;
+  sessionDate: string;
   exercises: { name: string; sets: { weight: number; reps: number }[] }[];
 };
 
@@ -120,10 +122,18 @@ export async function saveWorkoutSession(
     return { error: "Add at least one exercise with a set before saving." };
   }
 
+  // The client sends its own local date (WorkoutCard computes this at save
+  // time) — computing it here instead would use the server's (UTC) date,
+  // stamping late-evening sessions with tomorrow's date. Only falls back to
+  // the server's date if the field is somehow missing/malformed.
+  const sessionDate = isValidDateString(payload.sessionDate)
+    ? payload.sessionDate
+    : new Date().toISOString().slice(0, 10);
+
   const { data: session, error: sessionError } = await supabase
     .from("workout_sessions")
     .insert({
-      session_date: new Date().toISOString().slice(0, 10),
+      session_date: sessionDate,
       name: payload.name?.trim() || null,
       category: payload.category,
     })

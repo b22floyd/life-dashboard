@@ -7,6 +7,7 @@ import {
   saveWorkoutSession,
   type ParseWorkoutState,
 } from "@/app/actions/workout";
+import { getLocalDateString } from "@/lib/date-utils";
 import { WORKOUT_CATEGORIES, type WorkoutCategory, type WorkoutSession } from "@/lib/workout-utils";
 import { WidgetCard } from "./WidgetCard";
 import { ProgressChart } from "./ProgressChart";
@@ -147,6 +148,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
       const result = await saveWorkoutSession({
         name: sessionName.trim() || null,
         category,
+        sessionDate: getLocalDateString(),
         exercises: cleaned,
       });
       if ("error" in result) {

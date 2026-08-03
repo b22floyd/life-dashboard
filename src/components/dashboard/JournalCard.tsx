@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { addJournalEntry, type JournalFormState } from "@/app/actions/journal";
 import { transcribeAudio, type TranscribeState } from "@/app/actions/transcribe";
+import { getLocalDateString } from "@/lib/date-utils";
 import type { JournalEntry } from "@/lib/journal";
 import { WidgetCard } from "./WidgetCard";
 
@@ -28,6 +29,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const audioFormRef = useRef<HTMLFormElement>(null);
+  const entryDateRef = useRef<HTMLInputElement>(null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -88,9 +90,16 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
         action={formAction}
         onSubmit={() => {
           submittedRef.current = true;
+          // Set right at submit time — computing this at render time would
+          // bake in whatever the server rendered initially, and the actual
+          // insert needs the browser's local date, not the server's.
+          if (entryDateRef.current) {
+            entryDateRef.current.value = getLocalDateString();
+          }
         }}
         className="flex flex-col gap-3"
       >
+        <input ref={entryDateRef} type="hidden" name="entryDate" />
         <textarea
           ref={textareaRef}
           name="content"

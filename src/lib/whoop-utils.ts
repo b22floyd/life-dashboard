@@ -1,5 +1,5 @@
 export type RecoveryPoint = {
-  date: string; // yyyy-mm-dd
+  timestamp: string; // ISO datetime — bucketed into calendar days client-side
   recoveryScore: number;
 };
 

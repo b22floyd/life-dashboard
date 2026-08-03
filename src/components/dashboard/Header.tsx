@@ -1,16 +1,10 @@
 import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getWeatherSnapshot } from "@/lib/weather";
+import { HeaderDate } from "./HeaderDate";
 import { WeatherWidget } from "./WeatherWidget";
 
 export async function Header() {
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,7 +18,7 @@ export async function Header() {
           <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             Life Dashboard
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{today}</p>
+          <HeaderDate />
         </div>
         <div className="flex items-center gap-4">
           <WeatherWidget initialSnapshot={weatherSnapshot} />

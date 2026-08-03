@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import type { RecoveryPoint } from "@/lib/whoop-utils";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 const WIDTH = 600;
 const HEIGHT = 200;
 const PADDING = { top: 16, right: 16, bottom: 28, left: 40 };
 
-function formatShortDate(dateStr: string) {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
+function formatShortDate(timestamp: string) {
+  return new Date(timestamp).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
@@ -16,6 +17,11 @@ function formatShortDate(dateStr: string) {
 
 export function RecoveryTrendChart({ data }: { data: RecoveryPoint[] }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  // These are absolute timestamps now (fixed from a server-side UTC-day
+  // bucketing bug), so formatting them genuinely differs between the
+  // server's timezone and the browser's — wait for mount rather than let
+  // React fight a real hydration mismatch on the axis labels.
+  const mounted = useHasMounted();
 
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
@@ -68,7 +74,7 @@ export function RecoveryTrendChart({ data }: { data: RecoveryPoint[] }) {
             )}
 
             {points.map((p, index) => (
-              <g key={p.date + index}>
+              <g key={p.timestamp + index}>
                 <circle
                   cx={p.x}
                   cy={p.y}
@@ -88,7 +94,7 @@ export function RecoveryTrendChart({ data }: { data: RecoveryPoint[] }) {
                     textAnchor="middle"
                     className="fill-zinc-400 text-[10px] dark:fill-zinc-500"
                   >
-                    {formatShortDate(p.date)}
+                    {mounted ? formatShortDate(p.timestamp) : ""}
                   </text>
                 )}
               </g>
@@ -104,7 +110,7 @@ export function RecoveryTrendChart({ data }: { data: RecoveryPoint[] }) {
                 transform: "translate(-50%, -130%)",
               }}
             >
-              {formatShortDate(points[hoverIndex].date)}: {points[hoverIndex].recoveryScore}%
+              {formatShortDate(points[hoverIndex].timestamp)}: {points[hoverIndex].recoveryScore}%
             </div>
           )}
         </div>

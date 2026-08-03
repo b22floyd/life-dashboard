@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import type { CalendarEvent } from "@/lib/google-calendar-utils";
+
+export type { CalendarEvent };
 
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
@@ -82,16 +85,11 @@ async function getValidAccessToken(): Promise<string | null> {
   }
 }
 
-export type CalendarEvent = {
-  id: string;
-  title: string;
-  start: string; // ISO datetime for timed events, "yyyy-mm-dd" for all-day
-  isAllDay: boolean;
-};
-
 // Returns null on any failure (no connection, expired refresh token, API
-// error) so the UI can prompt to reconnect rather than crash.
-export async function getUpcomingEvents(maxResults = 5): Promise<CalendarEvent[] | null> {
+// error) so the UI can prompt to reconnect rather than crash. Fetches more
+// than the visible 5-per-group cap since events now split into Today and
+// Upcoming sections, each with its own scrollable ~5-item window.
+export async function getUpcomingEvents(maxResults = 20): Promise<CalendarEvent[] | null> {
   const accessToken = await getValidAccessToken();
   if (!accessToken) return null;
 

@@ -1,9 +1,6 @@
 import { disconnectGoogleCalendar } from "@/app/actions/google-calendar";
-import {
-  getUpcomingEvents,
-  isGoogleCalendarConnected,
-  type CalendarEvent,
-} from "@/lib/google-calendar";
+import { getUpcomingEvents, isGoogleCalendarConnected } from "@/lib/google-calendar";
+import { EventsCardBody } from "./EventsCardBody";
 import { WidgetCard } from "./WidgetCard";
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
@@ -14,14 +11,6 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
     "Google didn't grant offline access. Remove Life Dashboard's access at myaccount.google.com/permissions and try connecting again.",
   storage_failed: "Connected, but saving the connection failed — try again.",
 };
-
-function formatEventTime(event: CalendarEvent) {
-  if (event.isAllDay) return "All day";
-  return new Date(event.start).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export async function EventsCard({
   error,
@@ -72,19 +61,8 @@ export async function EventsCard({
         <p className="text-sm text-red-600 dark:text-red-400">
           Couldn&apos;t load events from Google Calendar. Try disconnecting and reconnecting.
         </p>
-      ) : events.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">No upcoming events.</p>
       ) : (
-        <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
-          {events.map((event) => (
-            <li key={event.id} className="flex gap-3 text-sm">
-              <span className="w-20 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">
-                {formatEventTime(event)}
-              </span>
-              <span className="text-zinc-700 dark:text-zinc-300">{event.title}</span>
-            </li>
-          ))}
-        </ul>
+        <EventsCardBody events={events} />
       )}
     </WidgetCard>
   );

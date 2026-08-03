@@ -1,12 +1,53 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getWeatherSnapshot } from "@/lib/weather";
 import type { WeatherSnapshot } from "@/lib/weather-utils";
 import { formatHour, getWeatherIcon, getWeatherLabel } from "@/lib/weather-utils";
 
-export function WeatherWidget({ snapshot }: { snapshot: WeatherSnapshot | null }) {
+// Our own record of the user's choice, separate from (and in addition to)
+// whatever the browser itself remembers — lets us skip ever calling
+// getCurrentPosition again once they've said no.
+const GEO_PERMISSION_KEY = "weather-geo-permission";
+
+function isMobileDevice(): boolean {
+  const isSmallScreen = window.innerWidth < 768;
+  const isMobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  return isSmallScreen || isMobileUserAgent;
+}
+
+export function WeatherWidget({ initialSnapshot }: { initialSnapshot: WeatherSnapshot | null }) {
+  const [snapshot, setSnapshot] = useState(initialSnapshot);
+  const [locationLabel, setLocationLabel] = useState("Charlotte, NC");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Desktop always stays on the server-rendered Charlotte snapshot and never
+  // touches geolocation at all. Mobile tries to upgrade to the device's
+  // current location, unless a past denial was already remembered.
+  useEffect(() => {
+    if (!isMobileDevice()) return;
+    if (localStorage.getItem(GEO_PERMISSION_KEY) === "denied") return;
+    if (!("geolocation" in navigator)) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        localStorage.setItem(GEO_PERMISSION_KEY, "granted");
+        getWeatherSnapshot(position.coords.latitude, position.coords.longitude).then((data) => {
+          if (data) {
+            setSnapshot(data);
+            setLocationLabel("Your location");
+          }
+        });
+      },
+      () => {
+        // Denied or unavailable — remember it and stay on the Charlotte
+        // snapshot already loaded from the server.
+        localStorage.setItem(GEO_PERMISSION_KEY, "denied");
+      },
+      { timeout: 10_000, maximumAge: 5 * 60_000 },
+    );
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,7 +90,7 @@ export function WeatherWidget({ snapshot }: { snapshot: WeatherSnapshot | null }
                   {snapshot.currentTemp}°F
                 </p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {getWeatherLabel(snapshot.currentWeatherCode)} · Charlotte, NC
+                  {getWeatherLabel(snapshot.currentWeatherCode)} · {locationLabel}
                 </p>
               </div>
             </div>

@@ -27,7 +27,7 @@ export async function Header() {
           <p className="text-sm text-zinc-500 dark:text-zinc-400">{today}</p>
         </div>
         <div className="flex items-center gap-4">
-          <WeatherWidget snapshot={weatherSnapshot} />
+          <WeatherWidget initialSnapshot={weatherSnapshot} />
           {user && (
             <form action={signOut} className="flex items-center gap-3">
               <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">

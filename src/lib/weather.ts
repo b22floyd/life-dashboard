@@ -1,9 +1,9 @@
 import type { HourlyForecast, WeatherSnapshot } from "@/lib/weather-utils";
 
 const FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
-// Charlotte, NC.
-const LATITUDE = 35.2271;
-const LONGITUDE = -80.8431;
+// Charlotte, NC — the default location, and the only one ever used on desktop.
+export const DEFAULT_LATITUDE = 35.2271;
+export const DEFAULT_LONGITUDE = -80.8431;
 
 type OpenMeteoResponse = {
   current: { time: string; temperature_2m: number; weather_code: number };
@@ -11,17 +11,25 @@ type OpenMeteoResponse = {
   daily: { temperature_2m_max: number[]; temperature_2m_min: number[] };
 };
 
+// No server-only dependencies (just fetch/URL), so this is safe to call from
+// both Server Components (the default Charlotte snapshot) and directly from
+// the WeatherWidget Client Component (the on-device geolocation snapshot).
 // Returns null on any failure (network error, non-200, unexpected shape) so
-// the header can show a quiet fallback instead of crashing the dashboard.
-export async function getWeatherSnapshot(): Promise<WeatherSnapshot | null> {
+// callers can show a quiet fallback instead of crashing.
+export async function getWeatherSnapshot(
+  latitude: number = DEFAULT_LATITUDE,
+  longitude: number = DEFAULT_LONGITUDE,
+): Promise<WeatherSnapshot | null> {
   const url = new URL(FORECAST_ENDPOINT);
-  url.searchParams.set("latitude", String(LATITUDE));
-  url.searchParams.set("longitude", String(LONGITUDE));
+  url.searchParams.set("latitude", String(latitude));
+  url.searchParams.set("longitude", String(longitude));
   url.searchParams.set("current", "temperature_2m,weather_code");
   url.searchParams.set("hourly", "temperature_2m,weather_code");
   url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min");
   url.searchParams.set("temperature_unit", "fahrenheit");
-  url.searchParams.set("timezone", "America/New_York");
+  // "auto" resolves to the local timezone for whatever coordinates were
+  // passed in, rather than always assuming Charlotte's Eastern time.
+  url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "2");
 
   let response: Response;

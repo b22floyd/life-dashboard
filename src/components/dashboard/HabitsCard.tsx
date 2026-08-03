@@ -9,7 +9,7 @@ const habits = [
 export function HabitsCard() {
   return (
     <WidgetCard title="Habit Streaks">
-      <ul className="flex flex-col gap-3">
+      <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
         {habits.map((habit) => (
           <li
             key={habit.id}

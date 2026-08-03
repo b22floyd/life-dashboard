@@ -82,6 +82,15 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260803000000_add_workout_session_category.sql` — adds a nullable `category` column to `workout_sessions`, constrained to `Chest`, `Back`, `Shoulder`, or `Leg`. Existing sessions default to `null` (uncategorized) and won't appear under any of the progress-chart tabs.
 - `20260803010000_require_workout_session_category.sql` — adds a `not valid` check constraint requiring `category is not null`. `not valid` means it only applies going forward (new inserts and updates) — existing null rows are left alone rather than being force-migrated or rejected retroactively.
 - `20260803020000_create_todoist_preferences.sql` — creates `todoist_preferences` (one row per user: `selected_project_ids`) backing the Work Tasks card, so which Todoist project(s) you've chosen persists across visits. RLS is scoped to `auth.uid()`.
+- `20260803030000_create_personal_tasks.sql` — creates `personal_tasks` (`content`, `created_at`) backing the Personal Tasks card. RLS is scoped to `auth.uid()` with select/insert/delete policies — completing a task deletes its row rather than flagging it done, since there's no "view completed" feature.
+
+### Personal Tasks
+
+A simple manual checklist, separate from the Todoist-backed Work Tasks card — nothing here talks to an external API.
+
+- `src/lib/personal-tasks.ts` — `getPersonalTasks()` fetches the signed-in user's tasks oldest-first for Server Components.
+- `src/app/actions/personal-tasks.ts` — `addPersonalTask` inserts a new task; `completePersonalTask` deletes it (checking a task off removes it for good, there's no completed-tasks view).
+- `src/components/dashboard/PersonalTasksCard.tsx` (Server Component, fetches data) + `PersonalTasksCardBody.tsx` (Client Component) — a text input + Add button, and the task list with checkboxes. Checking a task off removes it immediately (optimistic) and deletes it in the database; on failure it reappears once fresh data loads.
 
 ### Journal
 

@@ -75,7 +75,7 @@ export async function EventsCard({
       ) : events.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">No upcoming events.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
           {events.map((event) => (
             <li key={event.id} className="flex gap-3 text-sm">
               <span className="w-20 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">

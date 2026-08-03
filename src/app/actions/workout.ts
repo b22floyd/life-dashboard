@@ -104,7 +104,11 @@ export async function saveWorkoutSession(
     return { error: "You must be signed in to save a workout." };
   }
 
-  if (payload.category !== null && !WORKOUT_CATEGORIES.includes(payload.category)) {
+  if (!payload.category) {
+    return { error: "Select a category before saving." };
+  }
+
+  if (!WORKOUT_CATEGORIES.includes(payload.category)) {
     return { error: "Invalid category." };
   }
 

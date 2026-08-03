@@ -119,6 +119,11 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
   function handleSave() {
     setSaveError(null);
 
+    if (!category) {
+      setSaveError("Select a category before saving.");
+      return;
+    }
+
     const cleaned = exercises
       .map((exercise) => ({
         name: exercise.name.trim(),
@@ -193,14 +198,17 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
 
           <div className="mb-3 flex flex-col gap-1">
             <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Category (optional)
+              Category
             </label>
             <div className="flex flex-wrap gap-2">
               {WORKOUT_CATEGORIES.map((option) => (
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setCategory((current) => (current === option ? null : option))}
+                  onClick={() => {
+                    setCategory((current) => (current === option ? null : option));
+                    setSaveError(null);
+                  }}
                   className={
                     category === option
                       ? "rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"

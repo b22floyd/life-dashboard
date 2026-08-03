@@ -23,7 +23,13 @@ function formatEventTime(event: CalendarEvent) {
   });
 }
 
-export async function EventsCard({ error }: { error?: string }) {
+export async function EventsCard({
+  error,
+  errorDetail,
+}: {
+  error?: string;
+  errorDetail?: string;
+}) {
   const connected = await isGoogleCalendarConnected();
   const events = connected ? await getUpcomingEvents() : null;
 
@@ -44,9 +50,10 @@ export async function EventsCard({ error }: { error?: string }) {
       }
     >
       {error && (
-        <p className="mb-3 text-sm text-red-600 dark:text-red-400">
-          {GOOGLE_ERROR_MESSAGES[error] ?? "Something went wrong connecting Google Calendar."}
-        </p>
+        <div className="mb-3 text-sm text-red-600 dark:text-red-400">
+          <p>{GOOGLE_ERROR_MESSAGES[error] ?? "Something went wrong connecting Google Calendar."}</p>
+          {errorDetail && <p className="mt-1 font-mono text-xs opacity-80">{errorDetail}</p>}
+        </div>
       )}
 
       {!connected ? (

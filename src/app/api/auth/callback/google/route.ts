@@ -3,12 +3,33 @@ import { createClient } from "@/lib/supabase/server";
 
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
+// Google's token endpoint returns a JSON body like
+// {"error": "redirect_uri_mismatch", "error_description": "..."} on failure.
+// Falls back to the raw response text if it isn't JSON.
+async function describeErrorResponse(response: Response): Promise<string> {
+  const raw = await response.text();
+  try {
+    const parsed = JSON.parse(raw) as { error?: string; error_description?: string };
+    if (parsed.error) {
+      return parsed.error_description ? `${parsed.error}: ${parsed.error_description}` : parsed.error;
+    }
+  } catch {
+    // Not JSON — fall through to the raw text below.
+  }
+  return raw.slice(0, 300);
+}
+
 export async function GET(request: NextRequest) {
   const dashboardUrl = new URL("/", request.url);
 
   const oauthError = request.nextUrl.searchParams.get("error");
   if (oauthError) {
+    const errorDescription = request.nextUrl.searchParams.get("error_description");
+    console.error("Google OAuth consent error:", oauthError, errorDescription);
     dashboardUrl.searchParams.set("google_error", oauthError);
+    if (errorDescription) {
+      dashboardUrl.searchParams.set("google_error_detail", errorDescription);
+    }
     return NextResponse.redirect(dashboardUrl);
   }
 
@@ -17,6 +38,7 @@ export async function GET(request: NextRequest) {
   const storedState = request.cookies.get("google_oauth_state")?.value;
 
   if (!code || !state || !storedState || state !== storedState) {
+    console.error("Google OAuth state mismatch:", { hasCode: Boolean(code), state, storedState });
     dashboardUrl.searchParams.set("google_error", "invalid_state");
     const response = NextResponse.redirect(dashboardUrl);
     response.cookies.delete("google_oauth_state");
@@ -47,7 +69,11 @@ export async function GET(request: NextRequest) {
   });
 
   if (!tokenResponse.ok) {
+    const detail = await describeErrorResponse(tokenResponse);
+    console.error("Google token exchange failed:", tokenResponse.status, detail);
+
     dashboardUrl.searchParams.set("google_error", "token_exchange_failed");
+    dashboardUrl.searchParams.set("google_error_detail", detail);
     const response = NextResponse.redirect(dashboardUrl);
     response.cookies.delete("google_oauth_state");
     return response;
@@ -64,6 +90,7 @@ export async function GET(request: NextRequest) {
   // always send prompt=consent — but guard rather than silently storing a
   // connection that can't be renewed once the access token expires.
   if (!tokens.refresh_token) {
+    console.error("Google token exchange succeeded but returned no refresh_token.");
     dashboardUrl.searchParams.set("google_error", "missing_refresh_token");
     const response = NextResponse.redirect(dashboardUrl);
     response.cookies.delete("google_oauth_state");
@@ -85,7 +112,9 @@ export async function GET(request: NextRequest) {
   );
 
   if (dbError) {
+    console.error("Failed to store Google Calendar connection:", dbError.message);
     dashboardUrl.searchParams.set("google_error", "storage_failed");
+    dashboardUrl.searchParams.set("google_error_detail", dbError.message);
   }
 
   const response = NextResponse.redirect(dashboardUrl);

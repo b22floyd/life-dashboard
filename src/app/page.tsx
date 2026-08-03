@@ -11,20 +11,20 @@ import { getWorkoutSessions } from "@/lib/workouts";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ google_error?: string }>;
+  searchParams: Promise<{ google_error?: string; google_error_detail?: string }>;
 }) {
-  const [{ google_error: googleError }, journalEntries, workoutSessions] = await Promise.all([
-    searchParams,
-    getJournalEntries(),
-    getWorkoutSessions(),
-  ]);
+  const [
+    { google_error: googleError, google_error_detail: googleErrorDetail },
+    journalEntries,
+    workoutSessions,
+  ] = await Promise.all([searchParams, getJournalEntries(), getWorkoutSessions()]);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
       <Header />
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-5 px-6 py-8 sm:grid-cols-2 lg:grid-cols-3">
         <TasksCard />
-        <EventsCard error={googleError} />
+        <EventsCard error={googleError} errorDetail={googleErrorDetail} />
         <HabitsCard />
         <FinanceCard />
         <JournalCard entries={journalEntries} />

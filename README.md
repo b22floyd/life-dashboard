@@ -96,6 +96,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260804000000_add_workout_session_delete_policies.sql` — adds delete policies to `workout_sessions`, `session_exercises`, and `exercise_sets`, which previously only had select/insert policies. RLS applies to rows removed via `on delete cascade`, so deleting a session needs delete policies on the child tables too, not just the parent.
 - `20260805000000_create_habits.sql` — creates `habits` (`name`, `position`) and `daily_habit_completions` (`habit_id`, `completed_date`, unique per habit+date) backing the Habit Streaks card. RLS on `habits` is scoped to `auth.uid()` directly; `daily_habit_completions` has no `user_id` of its own, so its policies check ownership via a join back to `habits`, same pattern as `session_exercises` → `workout_sessions`. Also seeds the 8 starting habits (single-user assumption, same as the journal migration).
 - `20260806000000_create_meal_planning_and_grocery.sql` — creates `meal_plan_entries` (a fixed row per user per day-of-week, upserted in place — never inserted fresh each week or deleted), `grocery_items` (`content`, `checked`), and `grocery_staples` (a separate recurring-item list), all backing the Meal Planning & Grocery List card. RLS is scoped to `auth.uid()` on all three.
+- `20260807000000_add_journal_entries_delete_policy.sql` — adds a delete policy to `journal_entries`, which previously only had select/insert policies, so entries can be removed from the Journal card.
 
 ### Timezones
 
@@ -117,9 +118,9 @@ A simple manual checklist, separate from the Todoist-backed Work Tasks card — 
 ### Journal
 
 - `src/lib/journal.ts` — `getJournalEntries()` fetches entries newest-first for Server Components.
-- `src/app/actions/journal.ts` — `addJournalEntry` is a Server Action that inserts a new entry and revalidates the dashboard. `entry_date` comes from a hidden form field the client sets right at submit time (see [Timezones](#timezones)) rather than being computed on the server.
+- `src/app/actions/journal.ts` — `addJournalEntry` is a Server Action that inserts a new entry and revalidates the dashboard. `entry_date` comes from a hidden form field the client sets right at submit time (see [Timezones](#timezones)) rather than being computed on the server. `deleteJournalEntry` deletes an entry by id, scoped to the signed-in user (`user_id` check, backed by the delete RLS policy).
 - `src/app/actions/transcribe.ts` — `transcribeAudio` is a Server Action that sends an uploaded audio file to OpenAI's Whisper API and returns the transcribed text. Runs entirely server-side so `OPENAI_API_KEY` stays private.
-- `src/components/dashboard/JournalCard.tsx` — upload-and-transcribe control, the textarea + save button, and the entry list UI.
+- `src/components/dashboard/JournalCard.tsx` — upload-and-transcribe control, the textarea + save button, and the entry list UI. Past entries are collapsed behind an "Entries (N)" toggle by default (same collapse pattern as Weight Training's Session History), expanding into a scrollable list capped at `max-h-80`. Each entry has a "Delete" button gated behind `window.confirm(...)`; deletion is optimistic (removed from the list immediately, reconciled with the server via `router.refresh()`), with the entry reappearing if the delete fails.
 
 To attach a voice memo: record it on your phone, upload the audio file via the "Upload & Transcribe" control, review/edit the transcribed text that appears in the textarea, then save as usual. Uploads are capped at 25MB (Whisper's own limit) via `serverActions.bodySizeLimit` in `next.config.ts`. Accepted formats: m4a (iPhone Voice Memos' default), mp3, mp4, wav, aac, webm, ogg, and flac — the file's extension is used to set the correct MIME type before it's sent to Whisper, since mobile browsers often report the wrong one.
 

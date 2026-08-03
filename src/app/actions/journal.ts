@@ -47,3 +47,28 @@ export async function addJournalEntry(
   revalidatePath("/");
   return null;
 }
+
+export type DeleteEntryResult = { success: true } | { error: string };
+
+export async function deleteJournalEntry(entryId: string): Promise<DeleteEntryResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You must be signed in to delete a journal entry." };
+  }
+
+  const { error } = await supabase
+    .from("journal_entries")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { success: true };
+}

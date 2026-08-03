@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
-import { addJournalEntry, type JournalFormState } from "@/app/actions/journal";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { addJournalEntry, deleteJournalEntry, type JournalFormState } from "@/app/actions/journal";
 import { transcribeAudio, type TranscribeState } from "@/app/actions/transcribe";
 import { getLocalDateString } from "@/lib/date-utils";
 import type { JournalEntry } from "@/lib/journal";
@@ -19,6 +20,7 @@ function formatEntryDate(entryDate: string) {
 }
 
 export function JournalCard({ entries }: { entries: JournalEntry[] }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     addJournalEntry,
     initialFormState,
@@ -31,6 +33,34 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
   const audioFormRef = useRef<HTMLFormElement>(null);
   const entryDateRef = useRef<HTMLInputElement>(null);
   const submittedRef = useRef(false);
+
+  const [entriesExpanded, setEntriesExpanded] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [, startDeleteTransition] = useTransition();
+
+  const [localEntries, setLocalEntries] = useState(entries);
+  // Reset local (optimistic) entry state whenever fresh data arrives from
+  // the server, following React's "adjusting state when a prop changes" pattern.
+  const [handledEntries, setHandledEntries] = useState(entries);
+  if (entries !== handledEntries) {
+    setHandledEntries(entries);
+    setLocalEntries(entries);
+  }
+
+  function handleDeleteEntry(entryId: string) {
+    if (!window.confirm("Are you sure you want to delete this entry?")) {
+      return;
+    }
+    setDeleteError(null);
+    setLocalEntries((current) => current.filter((entry) => entry.id !== entryId));
+    startDeleteTransition(async () => {
+      const result = await deleteJournalEntry(entryId);
+      if ("error" in result) {
+        setDeleteError(result.error);
+      }
+      router.refresh();
+    });
+  }
 
   useEffect(() => {
     if (submittedRef.current && !pending) {
@@ -122,25 +152,53 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
         </button>
       </form>
 
-      <div className="mt-5 flex max-h-80 flex-col gap-3 overflow-y-auto border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        {entries.length === 0 && (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
-            No entries yet — write your first one above.
-          </p>
+      <div className="mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+        <button
+          type="button"
+          onClick={() => setEntriesExpanded((expanded) => !expanded)}
+          aria-expanded={entriesExpanded}
+          className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+        >
+          <span>{entriesExpanded ? "▾" : "▸"}</span>
+          Entries{localEntries.length > 0 && ` (${localEntries.length})`}
+        </button>
+
+        {deleteError && (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
         )}
-        {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60"
-          >
-            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              {formatEntryDate(entry.entry_date)}
-            </p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
-              {entry.content}
-            </p>
+
+        {entriesExpanded && (
+          <div className="mt-3 flex max-h-80 flex-col gap-3 overflow-y-auto">
+            {localEntries.length === 0 && (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500">
+                No entries yet — write your first one above.
+              </p>
+            )}
+            {localEntries.map((entry) => (
+              <div
+                key={entry.id}
+                className="rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    {formatEntryDate(entry.entry_date)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEntry(entry.id)}
+                    className="shrink-0 text-xs text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400"
+                    aria-label="Delete entry"
+                  >
+                    Delete
+                  </button>
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
+                  {entry.content}
+                </p>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </WidgetCard>
   );

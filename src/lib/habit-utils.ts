@@ -1,3 +1,5 @@
+import { getLocalDateString } from "@/lib/date-utils";
+
 export type Habit = {
   id: string;
   name: string;
@@ -51,7 +53,12 @@ export function computeHabitStreaks(
   todayLocalDate: string,
 ): HabitStreaks {
   const completed = new Set(habit.completedDates);
-  const startDate = habit.created_at.slice(0, 10);
+  // `created_at` is a UTC-serialized timestamptz — slicing it directly
+  // would give the UTC calendar date, which can be "tomorrow" relative to
+  // the user's local date (e.g. a habit created in the evening in a
+  // negative-offset timezone). Convert to the browser's local calendar
+  // date instead, the same way `todayLocalDate` itself is computed.
+  const startDate = getLocalDateString(new Date(habit.created_at));
   const endDate = completed.has(todayLocalDate)
     ? todayLocalDate
     : addDays(todayLocalDate, -1);

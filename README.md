@@ -53,6 +53,14 @@ GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
 
 Create these in a [Google Cloud project](https://console.cloud.google.com/apis/credentials) with the Calendar API enabled. The redirect URI registered in Google Cloud Console must exactly match `<your-deployed-origin>/api/auth/callback/google` — add one entry per origin you use (production, any preview URLs, `http://localhost:3000` for local dev). Both variables are server-only.
 
+The Today's Tasks card needs a Todoist API token:
+
+```
+TODOIST_API_TOKEN=<your-todoist-api-token>
+```
+
+Find it under **Settings → Integrations → Developer** in Todoist. Server-only — read inside `src/lib/todoist.ts` and the Server Actions in `src/app/actions/todoist.ts`.
+
 ## Supabase
 
 Supabase client helpers live in `src/lib/supabase/`:
@@ -73,6 +81,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260802150000_create_google_calendar_connections.sql` — creates `google_calendar_connections` (one row per user: access token, refresh token, expiry) backing the Upcoming Events card. RLS is scoped to `auth.uid()`, and the table is only ever touched by server-side code — the anon/browser client never reads or writes it.
 - `20260803000000_add_workout_session_category.sql` — adds a nullable `category` column to `workout_sessions`, constrained to `Chest`, `Back`, `Shoulder`, or `Leg`. Existing sessions default to `null` (uncategorized) and won't appear under any of the progress-chart tabs.
 - `20260803010000_require_workout_session_category.sql` — adds a `not valid` check constraint requiring `category is not null`. `not valid` means it only applies going forward (new inserts and updates) — existing null rows are left alone rather than being force-migrated or rejected retroactively.
+- `20260803020000_create_todoist_preferences.sql` — creates `todoist_preferences` (one row per user: `selected_project_ids`) backing the Today's Tasks card, so which Todoist project(s) you've chosen persists across visits. RLS is scoped to `auth.uid()`.
 
 ### Journal
 
@@ -92,6 +101,14 @@ To attach a voice memo: record it on your phone, upload the audio file via the "
 - `src/components/dashboard/ProgressChart.tsx` — four category tabs; the exercise picker and chart below only ever show exercises from sessions in the selected category. Sessions without a category (including everything logged before this feature) don't appear under any tab.
 
 The parsed result is never saved directly — it populates the same editable builder used for manual entry, so you can fix anything (including the category) before it's written to the database. Claude doesn't infer the category from the description; it's always your own selection.
+
+### Todoist
+
+- `src/lib/todoist.ts` — server-only: `getTodoistProjects()`, `getTodoistTasksForProjects()`, and `closeTodoistTask()` call the Todoist API directly with `TODOIST_API_TOKEN`; `getSelectedProjectIds()` reads the saved preference from Supabase. List responses are parsed defensively (a flat array or a `{results: [...]}` wrapper, whichever Todoist returns) since the exact response shape wasn't verifiable from this environment — worth confirming against a real account.
+- `src/app/actions/todoist.ts` — `saveTodoistProjectSelection` upserts the chosen project IDs; `completeTodoistTask` closes a task in Todoist (via the API, not just locally) and revalidates the dashboard.
+- `src/components/dashboard/TasksCard.tsx` (Server Component, fetches data) + `TasksCardBody.tsx` (Client Component, the interactive part) — a project picker (checkboxes, multi-select) shown until you've saved a selection, after that the task list with due dates and checkboxes. Checking a task off removes it immediately (optimistic) and calls Todoist to actually complete it; on failure the task reappears once fresh data loads. A "Change projects" link reopens the picker at any time.
+
+Tasks shown are whatever's currently active (not completed) in the selected project(s) — not filtered to due-today specifically. Tasks with a due date sort first (soonest first); tasks with no due date sort last.
 
 ### Google Calendar
 
@@ -118,7 +135,7 @@ Sessions persist across browser restarts via Supabase's cookie-based refresh tok
 
 1. Push this repository to GitHub (or your Git provider of choice).
 2. Import the project into [Vercel](https://vercel.com/new).
-3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` as Environment Variables in the Vercel project settings.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TODOIST_API_TOKEN` as Environment Variables in the Vercel project settings.
 4. Deploy. Vercel will detect the Next.js framework automatically.
 5. In Google Cloud Console, make sure `https://<your-vercel-domain>/api/auth/callback/google` is registered as an authorized redirect URI for the OAuth client.
 

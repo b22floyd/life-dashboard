@@ -61,6 +61,15 @@ TODOIST_API_TOKEN=<your-todoist-api-token>
 
 Find it under **Settings → Integrations → Developer** in Todoist. Server-only — read inside `src/lib/todoist.ts` and the Server Actions in `src/app/actions/todoist.ts`.
 
+The Health card needs a Whoop OAuth client:
+
+```
+WHOOP_CLIENT_ID=<your-whoop-client-id>
+WHOOP_CLIENT_SECRET=<your-whoop-client-secret>
+```
+
+Create these in the [Whoop Developer Dashboard](https://developer.whoop.com/). The redirect URI registered there must exactly match `<your-deployed-origin>/api/auth/callback/whoop` — add one entry per origin you use (production, any preview URLs, `http://localhost:3000` for local dev). Both variables are server-only.
+
 ## Supabase
 
 Supabase client helpers live in `src/lib/supabase/`:
@@ -83,6 +92,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260803010000_require_workout_session_category.sql` — adds a `not valid` check constraint requiring `category is not null`. `not valid` means it only applies going forward (new inserts and updates) — existing null rows are left alone rather than being force-migrated or rejected retroactively.
 - `20260803020000_create_todoist_preferences.sql` — creates `todoist_preferences` (one row per user: `selected_project_ids`) backing the Work Tasks card, so which Todoist project(s) you've chosen persists across visits. RLS is scoped to `auth.uid()`.
 - `20260803030000_create_personal_tasks.sql` — creates `personal_tasks` (`content`, `created_at`) backing the Personal Tasks card. RLS is scoped to `auth.uid()` with select/insert/delete policies — completing a task deletes its row rather than flagging it done, since there's no "view completed" feature.
+- `20260803040000_create_whoop_connections.sql` — creates `whoop_connections` (one row per user: access token, refresh token, expiry, scope) backing the Health card, following the exact same shape and RLS pattern as `google_calendar_connections`.
 
 ### Personal Tasks
 
@@ -142,13 +152,26 @@ Sessions persist across browser restarts via Supabase's cookie-based refresh tok
 
 `/privacy` is the one route exempt from the auth gate above — it's public in both directions (no redirect for signed-out visitors, no redirect-away for signed-in ones), since Google's OAuth consent-screen verification needs a privacy policy URL it can reach without logging in.
 
+### Health (Whoop)
+
+- `src/app/api/auth/whoop/route.ts` — starts the OAuth flow: redirects to Whoop's consent screen requesting the `read:recovery read:cycles read:sleep offline` scopes (`offline` is what gets a refresh token issued) and a random `state` value stashed in a short-lived, `httpOnly` cookie for CSRF protection, following the same pattern as the Google Calendar connect route.
+- `src/app/api/auth/callback/whoop/route.ts` — verifies `state`, exchanges the authorization code for tokens, and upserts them into `whoop_connections` for the signed-in user. Redirects back to the dashboard, adding a `?whoop_error=...` param on failure (surfaced as an inline message on the Health card).
+- `src/lib/whoop-utils.ts` — pure, client-safe types (`HealthSnapshot`, `RecoveryPoint`) and helpers (`formatSleepDuration`, `recoveryColorClass`) shared by the server data layer and the chart component.
+- `src/lib/whoop.ts` — server-only: `isWhoopConnected()`, `getHealthSnapshot()` (latest recovery score, sleep summary, and strain, refreshing the access token first if it's expired or about to expire), and `getRecoveryTrend()` (recovery score for the last 7 days).
+- `src/app/actions/whoop.ts` — `disconnectWhoop` Server Action: deletes the stored connection. Unlike Google, Whoop's public API has no documented token-revocation endpoint, so there's nothing to call before deleting.
+- `src/components/dashboard/HealthCard.tsx` — shows a "Connect Whoop" button when there's no connection, otherwise a compact recovery/sleep/strain snapshot plus the trend chart below it.
+- `src/components/dashboard/RecoveryTrendChart.tsx` — a 7-day line chart of recovery score, styled the same way as the Weight Training progress chart (same SVG approach, hover tooltip, and date labels), with a fixed 0-100 y-axis since recovery is always a percentage.
+
+Whoop's API response shapes (recovery/cycle/sleep record fields) are implemented from their public developer docs and parsed defensively (missing/unscored records are treated as "no data" rather than thrown), but weren't verifiable against a live account from this environment — worth double-checking field names against your own data once connected. Tokens are stored as plain columns protected by RLS, same caveat as the Google Calendar connection above.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).
 2. Import the project into [Vercel](https://vercel.com/new).
-3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TODOIST_API_TOKEN` as Environment Variables in the Vercel project settings.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TODOIST_API_TOKEN`, `WHOOP_CLIENT_ID`, and `WHOOP_CLIENT_SECRET` as Environment Variables in the Vercel project settings.
 4. Deploy. Vercel will detect the Next.js framework automatically.
 5. In Google Cloud Console, make sure `https://<your-vercel-domain>/api/auth/callback/google` is registered as an authorized redirect URI for the OAuth client.
+6. In the Whoop Developer Dashboard, make sure `https://<your-vercel-domain>/api/auth/callback/whoop` is registered as a redirect URI for the OAuth client.
 
 ## Learn More
 

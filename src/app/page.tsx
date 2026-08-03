@@ -6,16 +6,27 @@ import { EventsCard } from "@/components/dashboard/EventsCard";
 import { FinanceCard } from "@/components/dashboard/FinanceCard";
 import { JournalCard } from "@/components/dashboard/JournalCard";
 import { WorkoutCard } from "@/components/dashboard/WorkoutCard";
+import { HealthCard } from "@/components/dashboard/HealthCard";
 import { getJournalEntries } from "@/lib/journal";
 import { getWorkoutSessions } from "@/lib/workouts";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ google_error?: string; google_error_detail?: string }>;
+  searchParams: Promise<{
+    google_error?: string;
+    google_error_detail?: string;
+    whoop_error?: string;
+    whoop_error_detail?: string;
+  }>;
 }) {
   const [
-    { google_error: googleError, google_error_detail: googleErrorDetail },
+    {
+      google_error: googleError,
+      google_error_detail: googleErrorDetail,
+      whoop_error: whoopError,
+      whoop_error_detail: whoopErrorDetail,
+    },
     journalEntries,
     workoutSessions,
   ] = await Promise.all([searchParams, getJournalEntries(), getWorkoutSessions()]);
@@ -31,6 +42,7 @@ export default async function Home({
         <FinanceCard />
         <JournalCard entries={journalEntries} />
         <WorkoutCard sessions={workoutSessions} />
+        <HealthCard error={whoopError} errorDetail={whoopErrorDetail} />
       </main>
     </div>
   );

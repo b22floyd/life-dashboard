@@ -164,6 +164,17 @@ Sessions persist across browser restarts via Supabase's cookie-based refresh tok
 
 Whoop's API response shapes (recovery/cycle/sleep record fields) are implemented from their public developer docs and parsed defensively (missing/unscored records are treated as "no data" rather than thrown), but weren't verifiable against a live account from this environment — worth double-checking field names against your own data once connected. Tokens are stored as plain columns protected by RLS, same caveat as the Google Calendar connection above.
 
+### Weather
+
+A compact weather widget lives in the dashboard header, next to the date/email/Sign Out controls. No API key, database table, or user connection required — it's a live server-side fetch to [Open-Meteo](https://open-meteo.com) on every page load, hardcoded to Charlotte, NC.
+
+- `src/lib/weather-utils.ts` — pure, client-safe types (`WeatherSnapshot`, `HourlyForecast`) and a WMO weather-code → emoji/label lookup (`getWeatherIcon`, `getWeatherLabel`), plus `formatHour`.
+- `src/lib/weather.ts` — server-only: `getWeatherSnapshot()` fetches current conditions, today's high/low, and the next 12 hours from Open-Meteo's `/v1/forecast` endpoint (`cache: "no-store"` so it's always fresh, not ISR-cached). Returns `null` on any failure so the header can show a quiet fallback instead of crashing.
+- `src/components/dashboard/WeatherWidget.tsx` — a Client Component: the compact icon + temp button, and a dropdown panel (high/low + scrollable hourly forecast) that opens on click and closes on an outside click or a second click.
+- `src/components/dashboard/Header.tsx` — calls `getWeatherSnapshot()` (Server Component) and passes the result into `WeatherWidget`.
+
+Like the Whoop integration, Open-Meteo's response shape is implemented from their public docs and wasn't reachable from this sandbox to verify live (their domain is blocked by this environment's outbound proxy) — worth a quick visual check once deployed.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

@@ -14,6 +14,7 @@ import {
   CLEANING_FREQUENCIES,
   CLEANING_FREQUENCY_LABELS,
   computeCleaningStatus,
+  isCleaningTaskVisible,
   type CleaningFrequency,
   type CleaningTaskWithStatus,
 } from "@/lib/cleaning-utils";
@@ -123,6 +124,11 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
     });
   }
 
+  // Tasks further than 7 days from due still exist (and remain editable via
+  // handlers above, keyed off localTasks) — they're just not rendered until
+  // they fall within the window, recomputed fresh on every render.
+  const visibleTasks = localTasks.filter((task) => isCleaningTaskVisible(task));
+
   return (
     <div className="flex flex-col gap-3">
       <form
@@ -168,9 +174,13 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
           No cleaning tasks yet — add one above.
         </p>
+      ) : visibleTasks.length === 0 ? (
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          Nothing due or coming up in the next 7 days.
+        </p>
       ) : (
         <ul className="flex max-h-72 flex-col gap-2 overflow-y-auto">
-          {localTasks.map((task) => (
+          {visibleTasks.map((task) => (
             <li
               key={task.id}
               data-testid={`cleaning-task-${task.id}`}

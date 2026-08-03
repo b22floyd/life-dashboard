@@ -64,3 +64,11 @@ export function computeCleaningStatus(
     daysUntilDue: isDue ? null : Math.ceil((intervalMs - elapsedMs) / DAY_MS),
   };
 }
+
+// Only tasks that are due (any amount overdue) or coming due within the
+// given window are shown — everything further out still exists and will
+// reappear on its own as its due date approaches, since visibility is
+// recomputed fresh from computeCleaningStatus every time, not stored.
+export function isCleaningTaskVisible(task: CleaningTaskWithStatus, withinDays = 7): boolean {
+  return task.isDue || (task.daysUntilDue !== null && task.daysUntilDue <= withinDays);
+}

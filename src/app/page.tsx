@@ -2,6 +2,7 @@ import { Header } from "@/components/dashboard/Header";
 import { PersonalTasksCard } from "@/components/dashboard/PersonalTasksCard";
 import { TasksCard } from "@/components/dashboard/TasksCard";
 import { HabitsCard } from "@/components/dashboard/HabitsCard";
+import { CleaningCard } from "@/components/dashboard/CleaningCard";
 import { MealPlanGroceryCard } from "@/components/dashboard/MealPlanGroceryCard";
 import { EventsCard } from "@/components/dashboard/EventsCard";
 import { FinanceCard } from "@/components/dashboard/FinanceCard";
@@ -40,6 +41,7 @@ export default async function Home({
         <TasksCard />
         <EventsCard error={googleError} errorDetail={googleErrorDetail} />
         <HabitsCard />
+        <CleaningCard />
         <MealPlanGroceryCard />
         <FinanceCard />
         <JournalCard entries={journalEntries} />

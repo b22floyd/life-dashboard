@@ -111,6 +111,35 @@ export async function clearCheckedGroceryItems(): Promise<GroceryActionResult> {
   return { success: true };
 }
 
+// Bulk insert, used by the Meal Plan card's ingredient-parsing preview to
+// add several items at once — same insert as addGroceryItem, just multiple
+// rows in one call.
+export async function addItemsToGroceryList(items: string[]): Promise<GroceryActionResult> {
+  const cleaned = items.map((item) => item.trim()).filter(Boolean);
+  if (cleaned.length === 0) {
+    return { error: "No ingredients to add." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You must be signed in to add grocery items." };
+  }
+
+  const { error } = await supabase
+    .from("grocery_items")
+    .insert(cleaned.map((content) => ({ content })));
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { success: true };
+}
+
 export type AddStapleState = { error: string } | null;
 
 export async function addGroceryStaple(

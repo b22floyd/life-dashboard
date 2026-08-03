@@ -177,3 +177,29 @@ export async function saveWorkoutSession(
   revalidatePath("/");
   return { success: true };
 }
+
+export type DeleteSessionResult = { success: true } | { error: string };
+
+export async function deleteWorkoutSession(sessionId: string): Promise<DeleteSessionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You must be signed in to delete a workout session." };
+  }
+
+  // Cascades to session_exercises and exercise_sets via their foreign keys.
+  const { error } = await supabase
+    .from("workout_sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { success: true };
+}

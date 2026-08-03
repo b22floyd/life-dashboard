@@ -39,22 +39,31 @@ export function getExerciseNames(sessions: WorkoutSession[]): string[] {
   return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
 }
 
-export function getMaxWeightSeries(
+// Epley formula: estimated 1-rep max from a single set's weight and reps.
+export function estimateOneRepMax(weight: number, reps: number): number {
+  return weight * (1 + reps / 30);
+}
+
+export function getOneRepMaxSeries(
   sessions: WorkoutSession[],
   exerciseName: string,
-): { date: string; maxWeight: number }[] {
+): { date: string; oneRepMax: number }[] {
   const key = exerciseName.trim().toLowerCase();
 
   return sessions
     .map((session) => {
-      const weights = session.exercises
+      const oneRepMaxes = session.exercises
         .filter((exercise) => exercise.exercise_name.trim().toLowerCase() === key)
-        .flatMap((exercise) => exercise.sets.map((set) => set.weight));
+        .flatMap((exercise) =>
+          exercise.sets.map((set) => estimateOneRepMax(set.weight, set.reps)),
+        );
 
-      if (weights.length === 0) return null;
+      if (oneRepMaxes.length === 0) return null;
 
-      return { date: session.session_date, maxWeight: Math.max(...weights) };
+      // "Best set" is whichever set produces the highest estimated 1RM, not
+      // necessarily the heaviest weight or the most reps.
+      return { date: session.session_date, oneRepMax: Math.max(...oneRepMaxes) };
     })
-    .filter((point): point is { date: string; maxWeight: number } => point !== null)
+    .filter((point): point is { date: string; oneRepMax: number } => point !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
 }

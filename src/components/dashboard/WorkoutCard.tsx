@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  deleteWorkoutSession,
   parseWorkoutText,
   saveWorkoutSession,
   type ParseWorkoutState,
@@ -46,6 +47,31 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const router = useRouter();
+
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [, startDeleteTransition] = useTransition();
+
+  const [localSessions, setLocalSessions] = useState(sessions);
+  // Reset local (optimistic) session state whenever fresh data arrives from
+  // the server, following React's "adjusting state when a prop changes" pattern.
+  const [handledSessions, setHandledSessions] = useState(sessions);
+  if (sessions !== handledSessions) {
+    setHandledSessions(sessions);
+    setLocalSessions(sessions);
+  }
+
+  function handleDeleteSession(sessionId: string) {
+    setDeleteError(null);
+    setLocalSessions((current) => current.filter((session) => session.id !== sessionId));
+    startDeleteTransition(async () => {
+      const result = await deleteWorkoutSession(sessionId);
+      if ("error" in result) {
+        setDeleteError(result.error);
+      }
+      router.refresh();
+    });
+  }
 
   // Adjust local editor state when a new parse result arrives, following React's
   // "adjusting state when a prop changes" pattern rather than an effect + setState.
@@ -320,48 +346,71 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
 
         <div className="flex flex-col gap-6">
           <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
-            <ProgressChart sessions={sessions} />
+            <ProgressChart sessions={localSessions} />
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Session History
-            </h3>
-            <div className="flex max-h-96 flex-col gap-3 overflow-y-auto">
-              {sessions.length === 0 && (
-                <p className="text-sm text-zinc-400 dark:text-zinc-500">
-                  No workouts logged yet.
-                </p>
-              )}
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60"
-                >
-                  <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    {formatSessionDate(session.session_date)}
-                    {session.name ? ` — ${session.name}` : ""}
-                    {session.category && (
-                      <span className="ml-2 rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                        {session.category}
-                      </span>
-                    )}
+            <button
+              type="button"
+              onClick={() => setHistoryExpanded((expanded) => !expanded)}
+              aria-expanded={historyExpanded}
+              className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+            >
+              <span>{historyExpanded ? "▾" : "▸"}</span>
+              Session History{localSessions.length > 0 && ` (${localSessions.length})`}
+            </button>
+
+            {deleteError && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+            )}
+
+            {historyExpanded && (
+              <div className="mt-3 flex max-h-96 flex-col gap-3 overflow-y-auto">
+                {localSessions.length === 0 && (
+                  <p className="text-sm text-zinc-400 dark:text-zinc-500">
+                    No workouts logged yet.
                   </p>
-                  <ul className="mt-1 flex flex-col gap-0.5">
-                    {session.exercises.map((exercise) => (
-                      <li key={exercise.id} className="text-sm text-zinc-700 dark:text-zinc-300">
-                        <span className="font-medium">{exercise.exercise_name}</span>{" "}
-                        <span className="text-zinc-500 dark:text-zinc-400">
-                          {exercise.sets
-                            .map((set) => `${set.weight}×${set.reps}`)
-                            .join(", ")}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
+                )}
+                {localSessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                        {formatSessionDate(session.session_date)}
+                        {session.name ? ` — ${session.name}` : ""}
+                        {session.category && (
+                          <span className="ml-2 rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                            {session.category}
+                          </span>
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSession(session.id)}
+                        className="shrink-0 text-xs text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400"
+                        aria-label="Delete session"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {session.exercises.map((exercise) => (
+                        <li key={exercise.id} className="text-sm text-zinc-700 dark:text-zinc-300">
+                          <span className="font-medium">{exercise.exercise_name}</span>{" "}
+                          <span className="text-zinc-500 dark:text-zinc-400">
+                            {exercise.sets
+                              .map((set) => `${set.weight}×${set.reps}`)
+                              .join(", ")}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   getExerciseNames,
-  getMaxWeightSeries,
+  getOneRepMaxSeries,
   WORKOUT_CATEGORIES,
   type WorkoutCategory,
   type WorkoutSession,
@@ -48,14 +48,14 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
   }
 
   const series = useMemo(
-    () => (selected ? getMaxWeightSeries(categorySessions, selected) : []),
+    () => (selected ? getOneRepMaxSeries(categorySessions, selected) : []),
     [categorySessions, selected],
   );
 
-  const weights = series.map((point) => point.maxWeight);
-  const minWeight = weights.length ? Math.min(...weights) : 0;
-  const maxWeight = weights.length ? Math.max(...weights) : 0;
-  const weightRange = maxWeight - minWeight || 1;
+  const oneRepMaxes = series.map((point) => point.oneRepMax);
+  const minOneRepMax = oneRepMaxes.length ? Math.min(...oneRepMaxes) : 0;
+  const maxOneRepMax = oneRepMaxes.length ? Math.max(...oneRepMaxes) : 0;
+  const oneRepMaxRange = maxOneRepMax - minOneRepMax || 1;
 
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
@@ -66,7 +66,7 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
     const y =
       PADDING.top +
       plotHeight -
-      ((point.maxWeight - minWeight) / weightRange) * plotHeight;
+      ((point.oneRepMax - minOneRepMax) / oneRepMaxRange) * plotHeight;
     return { ...point, x, y };
   });
 
@@ -99,7 +99,7 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
         <>
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Max weight — {selected}
+              Estimated 1RM — {selected}
             </h3>
             <select
               value={selected}
@@ -125,7 +125,7 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
                 viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
                 className="w-full"
                 role="img"
-                aria-label={`Max weight over time for ${selected}`}
+                aria-label={`Estimated one-rep max over time for ${selected}`}
               >
                 <line
                   x1={PADDING.left}
@@ -184,7 +184,7 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
                     transform: "translate(-50%, -130%)",
                   }}
                 >
-                  {formatShortDate(points[hoverIndex].date)}: {points[hoverIndex].maxWeight} lb
+                  {formatShortDate(points[hoverIndex].date)}: {Math.round(points[hoverIndex].oneRepMax)} lb
                 </div>
               )}
             </div>

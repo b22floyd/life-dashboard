@@ -4,6 +4,7 @@ import { TasksCard } from "@/components/dashboard/TasksCard";
 import { HabitsCard } from "@/components/dashboard/HabitsCard";
 import { AnnualGoalsCard } from "@/components/dashboard/AnnualGoalsCard";
 import { CleaningCard } from "@/components/dashboard/CleaningCard";
+import { ContactsCard } from "@/components/dashboard/ContactsCard";
 import { MealPlanGroceryCard } from "@/components/dashboard/MealPlanGroceryCard";
 import { EventsCard } from "@/components/dashboard/EventsCard";
 import { FinanceCard } from "@/components/dashboard/FinanceCard";
@@ -44,6 +45,7 @@ export default async function Home({
         <HabitsCard />
         <AnnualGoalsCard />
         <CleaningCard />
+        <ContactsCard />
         <MealPlanGroceryCard />
         <FinanceCard />
         <JournalCard entries={journalEntries} />

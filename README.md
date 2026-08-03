@@ -95,6 +95,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260803040000_create_whoop_connections.sql` — creates `whoop_connections` (one row per user: access token, refresh token, expiry, scope) backing the Health card, following the exact same shape and RLS pattern as `google_calendar_connections`.
 - `20260804000000_add_workout_session_delete_policies.sql` — adds delete policies to `workout_sessions`, `session_exercises`, and `exercise_sets`, which previously only had select/insert policies. RLS applies to rows removed via `on delete cascade`, so deleting a session needs delete policies on the child tables too, not just the parent.
 - `20260805000000_create_habits.sql` — creates `habits` (`name`, `position`) and `daily_habit_completions` (`habit_id`, `completed_date`, unique per habit+date) backing the Habit Streaks card. RLS on `habits` is scoped to `auth.uid()` directly; `daily_habit_completions` has no `user_id` of its own, so its policies check ownership via a join back to `habits`, same pattern as `session_exercises` → `workout_sessions`. Also seeds the 8 starting habits (single-user assumption, same as the journal migration).
+- `20260806000000_create_meal_planning_and_grocery.sql` — creates `meal_plan_entries` (a fixed row per user per day-of-week, upserted in place — never inserted fresh each week or deleted), `grocery_items` (`content`, `checked`), and `grocery_staples` (a separate recurring-item list), all backing the Meal Planning & Grocery List card. RLS is scoped to `auth.uid()` on all three.
 
 ### Timezones
 
@@ -191,6 +192,20 @@ A fully custom habit tracker, replacing the original hardcoded placeholder — a
 Toggling, reordering, renaming, and deleting are all optimistic (the UI updates immediately, then reconciles with the server) following the same local-state-synced-from-props pattern used by Personal/Work Tasks and Weight Training's session delete.
 
 I verified the streak algorithm against a set of hand-worked cases (a single break within one window, two misses spaced more than 7 days apart correctly *not* compounding, and the two-miss-in-one-window reset) before wiring it into the UI — all matched the intended behavior exactly.
+
+### Meal Planning & Grocery List
+
+A wide card, directly below Habit Streaks: a 7-day meal plan on the left, an active grocery list plus a recurring "staples" list on the right.
+
+- `src/lib/meal-plan-utils.ts` — the `DAYS_OF_WEEK` constant (Sunday first) and the client-safe `DayOfWeek`/`MealPlanEntry` types.
+- `src/lib/meal-plan.ts` — server-only `getMealPlan()`. Always returns exactly 7 entries, one per day, filling in empty content for any day that doesn't have a row yet (a brand-new account has none at all).
+- `src/app/actions/meal-plan.ts` — `updateMealPlanEntry(dayOfWeek, content)` upserts onto `(user_id, day_of_week)`. There's no "new week" concept — each day is a single persistent slot you overwrite, not a dated, historical entry.
+- `src/components/dashboard/MealPlanSection.tsx` — one text field per day, saved on blur (only if the value actually changed) rather than on every keystroke or via a separate save button.
+- `src/lib/grocery-utils.ts` — client-safe `GroceryItem`/`GroceryStaple` types.
+- `src/lib/grocery.ts` — server-only `getGroceryItems()` and `getGroceryStaples()`, both ordered oldest-first.
+- `src/app/actions/grocery.ts` — `addGroceryItem` / `addGroceryStaple` (form actions), `toggleGroceryItem` (flips `checked`, doesn't delete), `clearCheckedGroceryItems` (bulk-deletes everything checked — the only way checked items are removed), `deleteGroceryStaple`, and `addStapleToGroceryList` (a plain callable — not a form action — sharing the same insert as `addGroceryItem`, used by the staple quick-add chips).
+- `src/components/dashboard/GroceryListSection.tsx` — staple chips at the top (tap the chip text to quick-add it to the list below; the small ✕ removes it from your staples, not from the active list, plus a compact inline "Add staple" field), then the manual add-item form, then the list itself. Checked items get a strikethrough and stay in place — they only disappear via the "Clear checked" button, which only appears once something is checked. Capped at `max-h-60 overflow-y-auto`. All mutations (toggle, quick-add, clear-checked, delete-staple) are optimistic, same local-state-synced-from-props pattern as Habit Streaks and Personal/Work Tasks.
+- `src/components/dashboard/MealPlanGroceryCard.tsx` — the Server Component wrapper (`lg:col-span-3`, full-width) that fetches all three data sources in parallel and lays out the two sections side by side.
 
 ### Weather
 

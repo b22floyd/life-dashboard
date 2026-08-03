@@ -1,6 +1,8 @@
 import { disconnectWhoop } from "@/app/actions/whoop";
 import { getHealthSnapshot, getRecoveryTrend, isWhoopConnected } from "@/lib/whoop";
+import { getWeightEntries, getWeightGoal } from "@/lib/weight";
 import { HealthCardBody } from "./HealthCardBody";
+import { WeightTrackerSection } from "./WeightTrackerSection";
 import { WidgetCard } from "./WidgetCard";
 
 const WHOOP_ERROR_MESSAGES: Record<string, string> = {
@@ -23,6 +25,7 @@ export async function HealthCard({
   const [snapshot, trend] = connected
     ? await Promise.all([getHealthSnapshot(), getRecoveryTrend()])
     : [null, []];
+  const [weightEntries, weightGoal] = await Promise.all([getWeightEntries(), getWeightGoal()]);
 
   return (
     <WidgetCard
@@ -67,6 +70,12 @@ export async function HealthCard({
       ) : (
         <HealthCardBody snapshot={snapshot} trend={trend} />
       )}
+
+      {/* Weight Tracker is independent of the Whoop connection above — it's
+          the user's own logged data, not something Whoop provides. */}
+      <div className="mt-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <WeightTrackerSection entries={weightEntries} goal={weightGoal} />
+      </div>
     </WidgetCard>
   );
 }

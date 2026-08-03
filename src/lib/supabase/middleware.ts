@@ -32,8 +32,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
+  // Public — no auth required, and no redirect either way (e.g. for
+  // Google OAuth consent-screen verification, which needs a reachable
+  // privacy policy URL).
+  const isPrivacyPage = request.nextUrl.pathname.startsWith("/privacy");
 
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isPrivacyPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

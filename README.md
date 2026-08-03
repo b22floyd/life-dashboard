@@ -140,6 +140,8 @@ The dashboard requires a signed-in Supabase user — there's no self-serve signu
 
 Sessions persist across browser restarts via Supabase's cookie-based refresh token — signing in once is enough; you won't need to log in again unless you explicitly sign out or the cookies are cleared.
 
+`/privacy` is the one route exempt from the auth gate above — it's public in both directions (no redirect for signed-out visitors, no redirect-away for signed-in ones), since Google's OAuth consent-screen verification needs a privacy policy URL it can reach without logging in.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

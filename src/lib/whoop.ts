@@ -20,6 +20,35 @@ export async function isWhoopConnected(): Promise<boolean> {
   return Boolean(data);
 }
 
+// Whoop's token endpoint returns a JSON body like
+// {"error": "invalid_grant", "error_description": "..."} on failure. Falls
+// back to the raw response text if it isn't JSON. Mirrors the identical
+// helper in the OAuth callback route — small enough that duplicating it
+// beats introducing a cross-cutting shared module for one function.
+async function describeErrorResponse(response: Response): Promise<string> {
+  const raw = await response.text();
+  try {
+    const parsed = JSON.parse(raw) as { error?: string; error_description?: string };
+    if (parsed.error) {
+      return parsed.error_description ? `${parsed.error}: ${parsed.error_description}` : parsed.error;
+    }
+  } catch {
+    // Not JSON — fall through to the raw text below.
+  }
+  return raw.slice(0, 300);
+}
+
+// Thrown with the HTTP status attached so callers can tell a definitive
+// rejection (400 invalid_grant — the refresh token itself is dead) apart
+// from a transient failure (5xx, network hiccup) worth just retrying later.
+class WhoopTokenRefreshError extends Error {
+  status: number;
+  constructor(status: number, detail: string) {
+    super(`Whoop token refresh failed (${status}): ${detail}`);
+    this.status = status;
+  }
+}
+
 async function refreshAccessToken(refreshToken: string) {
   const response = await fetch(TOKEN_ENDPOINT, {
     method: "POST",
@@ -33,10 +62,19 @@ async function refreshAccessToken(refreshToken: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to refresh Whoop access token (${response.status}).`);
+    const detail = await describeErrorResponse(response);
+    throw new WhoopTokenRefreshError(response.status, detail);
   }
 
-  return (await response.json()) as { access_token: string; expires_in: number };
+  // Whoop rotates refresh tokens on every use — the one just spent is
+  // invalidated the instant this response is issued, and a new one comes
+  // back in its place. refresh_token is typed optional defensively, but a
+  // missing one here would mean every subsequent refresh fails outright.
+  return (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in: number;
+  };
 }
 
 // Returns a valid access token for the current user, refreshing and
@@ -66,18 +104,43 @@ async function getValidAccessToken(): Promise<string | null> {
     const refreshed = await refreshAccessToken(connection.refresh_token);
     const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("whoop_connections")
       .update({
         access_token: refreshed.access_token,
+        // The bug this fixes: Whoop issues a new refresh_token alongside the
+        // new access_token and invalidates the old one immediately. Not
+        // persisting it here meant the very next refresh attempt reused a
+        // refresh token Whoop had already rotated away, failed with
+        // invalid_grant, and forced a manual reconnect — every time, after
+        // the first automatic refresh ever since the connection was made.
+        refresh_token: refreshed.refresh_token ?? connection.refresh_token,
         expires_at: expiresAt,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id);
 
+    if (updateError) {
+      console.error("Refreshed Whoop token but failed to persist it:", updateError.message);
+    }
+
     return refreshed.access_token;
   } catch (error) {
-    console.error("Failed to refresh Whoop token:", error);
+    console.error(
+      "Failed to refresh Whoop token:",
+      error instanceof Error ? error.message : error,
+    );
+
+    // A 400 (invalid_grant) means the refresh token itself is dead — expired,
+    // revoked on Whoop's side, or already rotated past — not something a
+    // retry will fix. Delete the stale connection so the dashboard shows
+    // "Connect Whoop" again instead of a confusing "couldn't load data"
+    // message while still claiming to be connected. A 5xx or network error
+    // is left alone, since that's worth just trying again on the next load.
+    if (error instanceof WhoopTokenRefreshError && error.status === 400) {
+      await supabase.from("whoop_connections").delete().eq("user_id", user.id);
+    }
+
     return null;
   }
 }

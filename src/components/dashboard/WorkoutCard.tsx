@@ -7,7 +7,7 @@ import {
   saveWorkoutSession,
   type ParseWorkoutState,
 } from "@/app/actions/workout";
-import type { WorkoutSession } from "@/lib/workout-utils";
+import { WORKOUT_CATEGORIES, type WorkoutCategory, type WorkoutSession } from "@/lib/workout-utils";
 import { WidgetCard } from "./WidgetCard";
 import { ProgressChart } from "./ProgressChart";
 
@@ -40,6 +40,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
   const parseFormRef = useRef<HTMLFormElement>(null);
 
   const [sessionName, setSessionName] = useState("");
+  const [category, setCategory] = useState<WorkoutCategory | null>(null);
   const [exercises, setExercises] = useState<EditableExercise[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
@@ -138,12 +139,17 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
     }
 
     startSaveTransition(async () => {
-      const result = await saveWorkoutSession({ name: sessionName.trim() || null, exercises: cleaned });
+      const result = await saveWorkoutSession({
+        name: sessionName.trim() || null,
+        category,
+        exercises: cleaned,
+      });
       if ("error" in result) {
         setSaveError(result.error);
         return;
       }
       setSessionName("");
+      setCategory(null);
       setExercises([]);
       router.refresh();
     });
@@ -172,7 +178,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
             </button>
           </form>
 
-          <div className="flex flex-col gap-1">
+          <div className="mb-3 flex flex-col gap-1">
             <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Session name (optional)
             </label>
@@ -181,8 +187,30 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
               placeholder="Push Day"
-              className="mb-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
+              className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
             />
+          </div>
+
+          <div className="mb-3 flex flex-col gap-1">
+            <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Category (optional)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {WORKOUT_CATEGORIES.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setCategory((current) => (current === option ? null : option))}
+                  className={
+                    category === option
+                      ? "rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -303,6 +331,11 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
                   <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {formatSessionDate(session.session_date)}
                     {session.name ? ` — ${session.name}` : ""}
+                    {session.category && (
+                      <span className="ml-2 rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                        {session.category}
+                      </span>
+                    )}
                   </p>
                   <ul className="mt-1 flex flex-col gap-0.5">
                     {session.exercises.map((exercise) => (

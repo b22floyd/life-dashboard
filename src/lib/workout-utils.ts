@@ -12,10 +12,14 @@ export type WorkoutExercise = {
   sets: WorkoutSet[];
 };
 
+export const WORKOUT_CATEGORIES = ["Chest", "Back", "Shoulder", "Leg"] as const;
+export type WorkoutCategory = (typeof WORKOUT_CATEGORIES)[number];
+
 export type WorkoutSession = {
   id: string;
   session_date: string;
   name: string | null;
+  category: WorkoutCategory | null;
   created_at: string;
   exercises: WorkoutExercise[];
 };

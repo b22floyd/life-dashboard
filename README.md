@@ -71,6 +71,7 @@ SQL migrations live in `supabase/migrations/`. Apply them either via the [Supaba
 - `20260802130000_scope_journal_entries_to_user.sql` — adds a `user_id` column and replaces the original open-access policies with ones scoped to `auth.uid()`. **Run this after creating your Supabase user** (Authentication → Users in the dashboard) — it backfills any pre-existing rows to that one account, which only works for a single-user setup.
 - `20260802140000_create_workout_tables.sql` — creates `workout_sessions`, `session_exercises`, and `exercise_sets` (one session has many exercises, each exercise has many sets) backing the Weight Training card. RLS is scoped to `auth.uid()` from the start — `workout_sessions` checks `user_id` directly, and the child tables check ownership via the parent session.
 - `20260802150000_create_google_calendar_connections.sql` — creates `google_calendar_connections` (one row per user: access token, refresh token, expiry) backing the Upcoming Events card. RLS is scoped to `auth.uid()`, and the table is only ever touched by server-side code — the anon/browser client never reads or writes it.
+- `20260803000000_add_workout_session_category.sql` — adds a nullable `category` column to `workout_sessions`, constrained to `Chest`, `Back`, `Shoulder`, or `Leg`. Existing sessions default to `null` (uncategorized) and won't appear under any of the progress-chart tabs.
 
 ### Journal
 
@@ -83,13 +84,13 @@ To attach a voice memo: record it on your phone, upload the audio file via the "
 
 ### Weight Training
 
-- `src/lib/workout-utils.ts` — pure, client-safe types and helpers (`getExerciseNames`, `getMaxWeightSeries`) shared by the server data layer and the chart component.
-- `src/lib/workouts.ts` — `getWorkoutSessions()` fetches sessions with their nested exercises and sets, newest-first, for Server Components.
-- `src/app/actions/workout.ts` — `parseWorkoutText` sends a freeform description to Claude (`claude-opus-5`, structured output via a Zod schema) and returns extracted exercises/sets; `saveWorkoutSession` inserts the (possibly edited) result into the three tables.
-- `src/components/dashboard/WorkoutCard.tsx` — the "Quick log" textarea + Parse button, an editable exercise/set builder (also usable directly for manual entry — just click "+ Add Exercise" without parsing anything), and the session history list.
-- `src/components/dashboard/ProgressChart.tsx` — an exercise picker plus a small SVG line chart of max weight per session over time.
+- `src/lib/workout-utils.ts` — pure, client-safe types and helpers (`getExerciseNames`, `getMaxWeightSeries`, the `WORKOUT_CATEGORIES` constant) shared by the server data layer, `WorkoutCard`, and the chart component.
+- `src/lib/workouts.ts` — `getWorkoutSessions()` fetches sessions (including `category`) with their nested exercises and sets, newest-first, for Server Components.
+- `src/app/actions/workout.ts` — `parseWorkoutText` sends a freeform description to Claude (`claude-opus-5`, structured output via a Zod schema) and returns extracted exercises/sets; `saveWorkoutSession` validates the category against `WORKOUT_CATEGORIES` and inserts the (possibly edited) result into the three tables.
+- `src/components/dashboard/WorkoutCard.tsx` — the "Quick log" textarea + Parse button, a category selector (Chest/Back/Shoulder/Leg, optional) alongside the session name field, an editable exercise/set builder (also usable directly for manual entry — just click "+ Add Exercise" without parsing anything), and the session history list.
+- `src/components/dashboard/ProgressChart.tsx` — four category tabs; the exercise picker and chart below only ever show exercises from sessions in the selected category. Sessions without a category (including everything logged before this feature) don't appear under any tab.
 
-The parsed result is never saved directly — it populates the same editable builder used for manual entry, so you can fix anything before it's written to the database.
+The parsed result is never saved directly — it populates the same editable builder used for manual entry, so you can fix anything (including the category) before it's written to the database. Claude doesn't infer the category from the description; it's always your own selection.
 
 ### Google Calendar
 

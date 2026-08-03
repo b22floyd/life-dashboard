@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import type { WorkoutSession, WorkoutSet } from "@/lib/workout-utils";
+import type { WorkoutCategory, WorkoutSession, WorkoutSet } from "@/lib/workout-utils";
 
 type RawSession = {
   id: string;
   session_date: string;
   name: string | null;
+  category: WorkoutCategory | null;
   created_at: string;
   session_exercises:
     | {
@@ -21,7 +22,7 @@ export async function getWorkoutSessions(): Promise<WorkoutSession[]> {
   const { data, error } = await supabase
     .from("workout_sessions")
     .select(
-      `id, session_date, name, created_at,
+      `id, session_date, name, category, created_at,
        session_exercises (
          id, exercise_name, position,
          exercise_sets ( id, set_number, weight, reps )
@@ -39,6 +40,7 @@ export async function getWorkoutSessions(): Promise<WorkoutSession[]> {
     id: session.id,
     session_date: session.session_date,
     name: session.name,
+    category: session.category,
     created_at: session.created_at,
     exercises: (session.session_exercises ?? [])
       .slice()
@@ -52,4 +54,10 @@ export async function getWorkoutSessions(): Promise<WorkoutSession[]> {
   }));
 }
 
-export type { WorkoutSession, WorkoutExercise, WorkoutSet } from "@/lib/workout-utils";
+export {
+  WORKOUT_CATEGORIES,
+  type WorkoutCategory,
+  type WorkoutSession,
+  type WorkoutExercise,
+  type WorkoutSet,
+} from "@/lib/workout-utils";

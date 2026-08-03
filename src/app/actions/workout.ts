@@ -5,6 +5,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { WORKOUT_CATEGORIES, type WorkoutCategory } from "@/lib/workout-utils";
 
 const anthropic = new Anthropic();
 
@@ -86,6 +87,7 @@ export async function parseWorkoutText(
 
 export type WorkoutPayload = {
   name: string | null;
+  category: WorkoutCategory | null;
   exercises: { name: string; sets: { weight: number; reps: number }[] }[];
 };
 
@@ -102,6 +104,10 @@ export async function saveWorkoutSession(
     return { error: "You must be signed in to save a workout." };
   }
 
+  if (payload.category !== null && !WORKOUT_CATEGORIES.includes(payload.category)) {
+    return { error: "Invalid category." };
+  }
+
   const exercises = payload.exercises.filter(
     (exercise) => exercise.name.trim() && exercise.sets.length > 0,
   );
@@ -115,6 +121,7 @@ export async function saveWorkoutSession(
     .insert({
       session_date: new Date().toISOString().slice(0, 10),
       name: payload.name?.trim() || null,
+      category: payload.category,
     })
     .select("id")
     .single();

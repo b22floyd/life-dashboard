@@ -1,6 +1,6 @@
 # Life Dashboard
 
-A personal life dashboard built with Next.js, Tailwind CSS, and Supabase — tasks, habits, upcoming events, a daily journal, weight training logs, and a finance snapshot in one place.
+A personal life dashboard built with Next.js, Tailwind CSS, and Supabase — tasks, habits, upcoming events, a daily journal, weight training logs, and a quick link out to Monarch for finances, all in one place.
 
 ## Getting Started
 
@@ -77,8 +77,6 @@ Supabase client helpers live in `src/lib/supabase/`:
 - `client.ts` — browser client for use in Client Components.
 - `server.ts` — server client for use in Server Components and Route Handlers.
 - `middleware.ts` — refreshes the auth session; wired up in `src/proxy.ts`.
-
-A couple of dashboard widgets (`src/components/dashboard/`) — `HabitsCard`, `FinanceCard` — still render placeholder data. Connect them to Supabase tables as your schema evolves, following the same pattern as the cards below.
 
 ### Database Schema
 
@@ -305,6 +303,16 @@ Two ways to get your own data out of the app as a single structured JSON file, b
 - `src/lib/supabase/middleware.ts` — the cron route is excluded from the normal "redirect to `/login` if no session" gate (`isCronRoute`), since Vercel invokes it with no cookies at all; its actual authorization is the `CRON_SECRET` check inside the route itself, not a login session.
 
 Verified the export's post-fetch shaping logic (sorting nested exercises by `position` and sets by `set_number`, handling a session with no exercises or an exercise with no sets, defensive against Postgres returning nested rows out of order) and the backup-retention math (deletes exactly the oldest files down to 8, handles fewer-than-8 and out-of-order file listings) against standalone reproductions, since neither `buildDataExport` nor the cron route can run outside a live Supabase project reachable from this sandbox. The manual export button's layout was checked at both desktop and mobile widths in a browser to confirm it doesn't crowd or wrap awkwardly next to the existing Sign Out button.
+
+### Monarch
+
+Where the old placeholder Finance Snapshot card used to sit — that card never rendered anything but hardcoded fake numbers, so it was removed outright rather than kept around. In its place, `src/components/dashboard/MonarchCard.tsx` is a single "Open Monarch" button linking out to [monarchmoney.com](https://www.monarchmoney.com), no Supabase table or API key involved.
+
+- On desktop, the link opens in a new tab (`target="_blank" rel="noopener noreferrer"`).
+- On mobile, the same link instead navigates in the current tab with no `target` set. No custom URL scheme is used to force-open the native Monarch app — a search for one turned up nothing publicly documented, and fabricating an unverified scheme would silently do nothing if wrong while looking like it worked. A same-tab, top-level navigation to the real `monarchmoney.com` URL is what lets iOS/Android's Universal Links / App Links mechanism hand off to the native app automatically if it's installed and registered for that domain, falling back to loading the site in the mobile browser otherwise — the standard, real mechanism for exactly this "open the app if installed, else the website" behavior, without guessing at anything.
+- Mobile vs. desktop is detected the same way `WeatherWidget.tsx` already does (`window.innerWidth < 768` or a mobile user-agent match), gated behind `useHasMounted()` so the server-rendered default (desktop-style, matching what a Server Component would otherwise guess) never mismatches the client's first paint — the `target` attribute silently updates after mount if the device turns out to be mobile, exactly the "render a reasonable default, silently upgrade" pattern used elsewhere in this app (e.g. `WeatherWidget`'s own Charlotte fallback).
+
+Verified in a headless browser with a spoofed iPhone user agent and viewport that the rendered `target` attribute is actually absent on mobile and `_blank` on desktop.
 
 ## Deploying to Vercel
 

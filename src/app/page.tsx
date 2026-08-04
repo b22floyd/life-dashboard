@@ -7,7 +7,7 @@ import { CleaningCard } from "@/components/dashboard/CleaningCard";
 import { ContactsCard } from "@/components/dashboard/ContactsCard";
 import { MealPlanGroceryCard } from "@/components/dashboard/MealPlanGroceryCard";
 import { EventsCard } from "@/components/dashboard/EventsCard";
-import { FinanceCard } from "@/components/dashboard/FinanceCard";
+import { MonarchCard } from "@/components/dashboard/MonarchCard";
 import { JournalCard } from "@/components/dashboard/JournalCard";
 import { WorkoutCard } from "@/components/dashboard/WorkoutCard";
 import { HealthCard } from "@/components/dashboard/HealthCard";
@@ -47,7 +47,7 @@ export default async function Home({
         <CleaningCard />
         <ContactsCard />
         <MealPlanGroceryCard />
-        <FinanceCard />
+        <MonarchCard />
         <JournalCard entries={journalEntries} />
         <HealthCard error={whoopError} errorDetail={whoopErrorDetail} />
         <WorkoutCard sessions={workoutSessions} />

@@ -314,6 +314,19 @@ Where the old placeholder Finance Snapshot card used to sit — that card never 
 
 Verified in a headless browser with a spoofed iPhone user agent and viewport that the rendered `target` attribute is actually absent on mobile and `_blank` on desktop.
 
+### Design Consistency Pass
+
+A cross-cutting visual-only audit (no functional changes) across every card, after 12+ sections had accumulated small, independent styling drift from being built incrementally over a long session. Card-level treatment — corner radius, border, background, padding, and the section-title style — was already fully consistent everywhere, since every card goes through the shared `WidgetCard` shell; the actual drift was all in details *within* card bodies:
+
+- **Collapse/expand toggles** (Journal's Entries, Weight Tracker's History, Weight Training's Session History, Annual Goals' Checkpoints & Notes and its nested Check-in Notes, Routine Cleaning Reminders' Recently Completed, Contacts' Recently Contacted): the `▸`/`▾` icon, `flex items-center gap-1.5 text-sm font-medium` label style, and the `border-t ... pt-3` divider immediately above each toggle are now identical everywhere — Annual Goals' two toggles had drifted to `text-xs`, and the divider's own top margin needed to differ slightly by context (`mt-4` when the toggle's parent has no gap of its own, `mt-1` when the parent is already a `gap-3` flex column and only needs a little more separation on top of that) so the *rendered* spacing above each divider ends up the same everywhere rather than just the class names matching superficially. No animation was added to the expand/collapse — none of these ever had one, so they were already consistent in that respect, and adding one now would be a new behavior rather than a style fix.
+- **Buttons**: primary (filled) buttons settled into three deliberate size tiers rather than four arbitrary ones — a standalone top-level action (Save Entry, Save Workout, Connect Whoop/Calendar, Add Goal, Save Goal, Log Weight, etc.) is `px-4 py-1.5 text-sm`; an inline "text input + Add button on one row" pattern (Cleaning, Habits, Personal Tasks, Grocery) is `px-3 py-1.5 text-sm` and was already consistent on its own; a compact per-item inline action (Contacts' Save/Log Contact, a goal's Save/Add note) is `px-3 py-1 text-xs`. Secondary (bordered) Cancel buttons paired with a `px-4` primary button are `px-3` — intentionally a touch narrower, not a mismatch — which fixed one outlier (Work Tasks' project-selector Cancel had matched its Save button's width instead).
+- **Category/filter pills** (Contacts' category filter, Weight Training's category tabs): both now render at the same `px-3 py-1.5 text-sm`, rather than the filter pills being a size smaller than the tabs for no reason tied to their nearly-identical role.
+- **List-item rows** (history entries, goal check-in notes, etc.) already shared one `rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60` treatment almost everywhere; a goal's check-in note rows were the one holdout at smaller padding, now matching.
+- **Checkboxes**: all now include `shrink-0` (Personal Tasks' and Work Tasks' were missing it, present everywhere else) so a checkbox can never get compressed in a tight flex row.
+- Sub-section headings inside a shared card (Weight Tracker, Grocery List, Weekly Meal Plan — three sections that don't get their own `WidgetCard`, just an `<h3>`) now share the same `mb-3` breathing room below the heading.
+
+Verified with a Playwright-driven preview mounting six representative cards side by side with every toggle expanded at once, at both desktop and phone widths — confirmed no layout regressions (nothing overflows or wraps unexpectedly) and that the toggle dividers, list rows, and button sizing genuinely read as one consistent system now rather than merely sharing class-name strings.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

@@ -130,8 +130,8 @@ export function ContactsCardBody({ contacts }: { contacts: ContactWithStatus[] }
             onClick={() => setCategoryFilter(filter)}
             className={
               categoryFilter === filter
-                ? "rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                ? "rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             }
           >
             {filter}
@@ -164,7 +164,7 @@ export function ContactsCardBody({ contacts }: { contacts: ContactWithStatus[] }
         </div>
       )}
 
-      <div className="border-t border-zinc-200 pt-3 dark:border-zinc-800">
+      <div className="mt-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
         <button
           type="button"
           onClick={() => setRecentlyContactedExpanded((expanded) => !expanded)}

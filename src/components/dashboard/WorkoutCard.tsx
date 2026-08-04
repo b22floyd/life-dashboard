@@ -338,7 +338,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
             type="button"
             onClick={handleSave}
             disabled={isSaving || exercises.length === 0}
-            className="mt-4 self-end rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="mt-4 self-end rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
           >
             {isSaving ? "Saving…" : "Save Workout"}
           </button>
@@ -349,7 +349,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
             <ProgressChart sessions={localSessions} />
           </div>
 
-          <div>
+          <div className="border-t border-zinc-200 pt-3 dark:border-zinc-800">
             <button
               type="button"
               onClick={() => setHistoryExpanded((expanded) => !expanded)}

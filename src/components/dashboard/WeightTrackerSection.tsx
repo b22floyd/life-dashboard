@@ -153,7 +153,7 @@ export function WeightTrackerSection({
           <button
             type="submit"
             disabled={isSavingGoal}
-            className="self-end rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="self-end rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
           >
             {isSavingGoal ? "Saving…" : "Save Goal"}
           </button>
@@ -190,7 +190,7 @@ export function WeightTrackerSection({
           <button
             type="submit"
             disabled={isAdding || !mounted}
-            className="self-end rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="self-end rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
           >
             {isAdding ? "Logging…" : "Log Weight"}
           </button>

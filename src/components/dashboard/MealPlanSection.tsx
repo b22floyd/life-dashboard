@@ -212,7 +212,7 @@ export function MealPlanSection({
 
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between gap-2">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Weekly Meal Plan</h3>
         <button
           type="button"

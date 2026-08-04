@@ -57,7 +57,7 @@ export function AnnualGoalsCardBody({ goals }: { goals: AnnualGoal[] }) {
   const atMax = localGoals.length >= MAX_ANNUAL_GOALS;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {actionError && <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
       {localGoals.length === 0 && !showAddForm ? (

@@ -89,7 +89,7 @@ export function PersonalTasksCardBody({ tasks }: { tasks: PersonalTask[] }) {
               <input
                 type="checkbox"
                 onChange={() => handleComplete(task.id)}
-                className="h-4 w-4 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
+                className="h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
               />
               <span className="text-sm text-zinc-700 dark:text-zinc-300">{task.content}</span>
             </li>

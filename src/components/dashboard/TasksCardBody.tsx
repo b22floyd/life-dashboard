@@ -191,7 +191,7 @@ export function TasksCardBody({
                 setSaveError(null);
                 setEditing(false);
               }}
-              className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               Cancel
             </button>
@@ -240,7 +240,7 @@ export function TasksCardBody({
               <input
                 type="checkbox"
                 onChange={() => handleToggleComplete(task.id)}
-                className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
               />
               <div className="flex-1">
                 <p className="text-sm text-zinc-700 dark:text-zinc-300">{task.content}</p>

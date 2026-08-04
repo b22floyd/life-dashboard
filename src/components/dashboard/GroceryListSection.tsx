@@ -120,7 +120,7 @@ export function GroceryListSection({
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Grocery List</h3>
+      <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Grocery List</h3>
 
       {/* Tap a staple to quick-add it below; the small ✕ removes it from
           your staples list, not from the active grocery list. */}

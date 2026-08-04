@@ -41,8 +41,21 @@ export async function updateSession(request: NextRequest) {
   // It's authorized separately inside the route via a CRON_SECRET bearer
   // token instead.
   const isCronRoute = request.nextUrl.pathname.startsWith("/api/cron");
+  // PWA icon/manifest routes — fetched by the browser/OS itself (e.g. while
+  // adding the app to an iPhone home screen) with no user session, and
+  // extension-less, so they don't already match the proxy matcher's
+  // file-extension exclusions. A redirect to /login here would silently
+  // break the home screen icon and installability for anyone not currently
+  // signed in.
+  const isPwaAssetRoute = [
+    "/manifest.webmanifest",
+    "/icon",
+    "/apple-icon",
+    "/icon-192",
+    "/icon-512",
+  ].includes(request.nextUrl.pathname);
 
-  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute) {
+  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute && !isPwaAssetRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

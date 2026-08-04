@@ -88,34 +88,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
   return (
     <WidgetCard title="Journal" className="lg:col-span-2">
       <form
-        ref={audioFormRef}
-        action={transcribeFormAction}
-        className="mb-3 flex flex-col gap-3 rounded-lg border border-dashed border-zinc-300 p-3 dark:border-zinc-700 sm:flex-row sm:flex-wrap sm:items-center"
-      >
-        <input
-          type="file"
-          name="audio"
-          // Plain "audio/*" grays out .m4a in iOS's file picker (Voice
-          // Memos' default export format), so list extensions explicitly.
-          accept="audio/*,.m4a,.mp3,.mp4,.wav,.aac,.webm,.ogg,.flac"
-          required
-          className="min-w-0 text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200 sm:flex-1"
-        />
-        <button
-          type="submit"
-          disabled={transcribing}
-          className="w-full shrink-0 rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:w-auto"
-        >
-          {transcribing ? "Transcribing…" : "Upload & Transcribe"}
-        </button>
-        {transcribeState && "error" in transcribeState && (
-          <p className="w-full text-sm text-red-600 dark:text-red-400">
-            {transcribeState.error}
-          </p>
-        )}
-      </form>
-
-      <form
+        id="journal-entry-form"
         ref={formRef}
         action={formAction}
         onSubmit={() => {
@@ -135,7 +108,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
           name="content"
           rows={4}
           required
-          placeholder="What happened today? Write here or upload a voice memo above."
+          placeholder="What happened today? Write here or upload a voice memo below."
           className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
         />
         {state?.error && (
@@ -143,14 +116,47 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
             {state.error}
           </p>
         )}
+      </form>
+
+      {/* A sibling of the entry form (forms can't nest) — its Upload &
+          Transcribe button sits on the same line as Save Entry via that
+          button's `form` attribute, which ties it back to the entry form
+          above without needing to live inside its DOM subtree. */}
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <form
+          ref={audioFormRef}
+          action={transcribeFormAction}
+          className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-1 sm:flex-nowrap"
+        >
+          <input
+            type="file"
+            name="audio"
+            // Plain "audio/*" grays out .m4a in iOS's file picker (Voice
+            // Memos' default export format), so list extensions explicitly.
+            accept="audio/*,.m4a,.mp3,.mp4,.wav,.aac,.webm,.ogg,.flac"
+            required
+            className="shrink-0 text-xs text-zinc-600 file:mr-2 file:rounded-full file:border-0 file:bg-zinc-100 file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200 sm:min-w-0 sm:flex-1"
+          />
+          <button
+            type="submit"
+            disabled={transcribing}
+            className="shrink-0 rounded-full border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {transcribing ? "Transcribing…" : "Upload & Transcribe"}
+          </button>
+        </form>
         <button
           type="submit"
+          form="journal-entry-form"
           disabled={pending}
-          className="self-end rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="shrink-0 self-end rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 sm:self-auto"
         >
           {pending ? "Saving…" : "Save Entry"}
         </button>
-      </form>
+      </div>
+      {transcribeState && "error" in transcribeState && (
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{transcribeState.error}</p>
+      )}
 
       <div className="mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
         <button

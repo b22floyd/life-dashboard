@@ -52,6 +52,11 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
   const [toggleError, setToggleError] = useState<string | null>(null);
   const [, startToggleTransition] = useTransition();
 
+  // Checkpoint targets can contain sensitive detail (e.g. dollar amounts),
+  // so the card shows only title, description, and the progress bar by
+  // default — checkpoints and check-in notes stay hidden until expanded.
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
@@ -238,90 +243,110 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
             </p>
           </div>
 
-          {toggleError && <p className="text-xs text-red-600 dark:text-red-400">{toggleError}</p>}
+          <button
+            type="button"
+            onClick={() => setDetailsExpanded((expanded) => !expanded)}
+            aria-expanded={detailsExpanded}
+            className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+          >
+            <span>{detailsExpanded ? "▾" : "▸"}</span>
+            Checkpoints & Notes
+          </button>
 
-          <div className="flex flex-col gap-1.5">
-            {localGoal.checkpoints.map((checkpoint) => (
-              <label key={checkpoint.quarter} className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={checkpoint.completed}
-                  onChange={() => handleToggleCheckpoint(checkpoint.id, !checkpoint.completed)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
-                />
-                <span className="text-sm">
-                  <span className="font-medium text-zinc-600 dark:text-zinc-300">
-                    {checkpoint.quarter}:
-                  </span>{" "}
-                  <span
-                    className={
-                      checkpoint.completed
-                        ? "text-zinc-400 line-through dark:text-zinc-500"
-                        : "text-zinc-700 dark:text-zinc-300"
-                    }
-                  >
-                    {checkpoint.targetDescription || (
-                      <span className="italic text-zinc-400 dark:text-zinc-500">
-                        No target set
-                      </span>
-                    )}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
+          {detailsExpanded && (
+            <>
+              {toggleError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{toggleError}</p>
+              )}
 
-          <div className="border-t border-zinc-200 pt-2 dark:border-zinc-800">
-            <button
-              type="button"
-              onClick={() => setNotesExpanded((expanded) => !expanded)}
-              aria-expanded={notesExpanded}
-              className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
-            >
-              <span>{notesExpanded ? "▾" : "▸"}</span>
-              Check-in Notes{localGoal.notes.length > 0 && ` (${localGoal.notes.length})`}
-            </button>
-
-            {notesExpanded && (
-              <div className="mt-2 flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <textarea
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    rows={2}
-                    placeholder="Add a check-in note…"
-                    className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddNote}
-                    disabled={isAddingNote || !noteText.trim()}
-                    className="self-start rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-                  >
-                    {isAddingNote ? "Adding…" : "Add"}
-                  </button>
-                </div>
-                {noteError && <p className="text-xs text-red-600 dark:text-red-400">{noteError}</p>}
-                {localGoal.notes.length === 0 ? (
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">No check-in notes yet.</p>
-                ) : (
-                  <div className="flex max-h-48 flex-col gap-2 overflow-y-auto">
-                    {localGoal.notes.map((note) => (
-                      <div
-                        key={note.id}
-                        className="rounded-lg bg-zinc-50 px-2 py-1.5 dark:bg-zinc-800/60"
+              <div className="flex flex-col gap-1.5">
+                {localGoal.checkpoints.map((checkpoint) => (
+                  <label key={checkpoint.quarter} className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={checkpoint.completed}
+                      onChange={() => handleToggleCheckpoint(checkpoint.id, !checkpoint.completed)}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
+                    />
+                    <span className="text-sm">
+                      <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                        {checkpoint.quarter}:
+                      </span>{" "}
+                      <span
+                        className={
+                          checkpoint.completed
+                            ? "text-zinc-400 line-through dark:text-zinc-500"
+                            : "text-zinc-700 dark:text-zinc-300"
+                        }
                       >
-                        <p className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
-                          {mounted ? formatNoteTimestamp(note.createdAt) : "…"}
-                        </p>
-                        <p className="text-sm text-zinc-700 dark:text-zinc-300">{note.note}</p>
+                        {checkpoint.targetDescription || (
+                          <span className="italic text-zinc-400 dark:text-zinc-500">
+                            No target set
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="border-t border-zinc-200 pt-2 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setNotesExpanded((expanded) => !expanded)}
+                  aria-expanded={notesExpanded}
+                  className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+                >
+                  <span>{notesExpanded ? "▾" : "▸"}</span>
+                  Check-in Notes{localGoal.notes.length > 0 && ` (${localGoal.notes.length})`}
+                </button>
+
+                {notesExpanded && (
+                  <div className="mt-2 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        rows={2}
+                        placeholder="Add a check-in note…"
+                        className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddNote}
+                        disabled={isAddingNote || !noteText.trim()}
+                        className="self-start rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                      >
+                        {isAddingNote ? "Adding…" : "Add"}
+                      </button>
+                    </div>
+                    {noteError && (
+                      <p className="text-xs text-red-600 dark:text-red-400">{noteError}</p>
+                    )}
+                    {localGoal.notes.length === 0 ? (
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                        No check-in notes yet.
+                      </p>
+                    ) : (
+                      <div className="flex max-h-48 flex-col gap-2 overflow-y-auto">
+                        {localGoal.notes.map((note) => (
+                          <div
+                            key={note.id}
+                            className="rounded-lg bg-zinc-50 px-2 py-1.5 dark:bg-zinc-800/60"
+                          >
+                            <p className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+                              {mounted ? formatNoteTimestamp(note.createdAt) : "…"}
+                            </p>
+                            <p className="text-sm text-zinc-700 dark:text-zinc-300">{note.note}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </>
       )}
     </div>

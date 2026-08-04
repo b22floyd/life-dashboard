@@ -6,7 +6,7 @@ export async function ContactsCard() {
   const contacts = await getContacts();
 
   return (
-    <WidgetCard title="Contacts / Relationship Tracker">
+    <WidgetCard title="Contacts / Relationship Tracker" id="contacts-section">
       <ContactsCardBody contacts={contacts} />
     </WidgetCard>
   );

@@ -6,7 +6,7 @@ export async function CleaningCard() {
   const tasks = await getCleaningTasks();
 
   return (
-    <WidgetCard title="Routine Cleaning Reminders">
+    <WidgetCard title="Routine Cleaning Reminders" id="cleaning-section">
       <CleaningCardBody tasks={tasks} />
     </WidgetCard>
   );

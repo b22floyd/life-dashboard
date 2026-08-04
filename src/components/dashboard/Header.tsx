@@ -1,6 +1,7 @@
 import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getWeatherSnapshot } from "@/lib/weather";
+import { DailyGlance } from "./DailyGlance";
 import { HeaderDate } from "./HeaderDate";
 import { WeatherWidget } from "./WeatherWidget";
 
@@ -22,6 +23,7 @@ export async function Header() {
         </div>
         <div className="flex items-center gap-4">
           <WeatherWidget initialSnapshot={weatherSnapshot} />
+          {user && <DailyGlance />}
           {user && (
             <div className="flex items-center gap-3">
               <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">

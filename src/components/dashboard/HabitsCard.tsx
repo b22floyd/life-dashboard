@@ -6,7 +6,7 @@ export async function HabitsCard() {
   const habits = await getHabits();
 
   return (
-    <WidgetCard title="Habit Streaks">
+    <WidgetCard title="Habit Streaks" id="habits-section">
       <HabitsCardBody habits={habits} />
     </WidgetCard>
   );

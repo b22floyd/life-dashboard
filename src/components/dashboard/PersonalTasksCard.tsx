@@ -6,7 +6,7 @@ export async function PersonalTasksCard() {
   const tasks = await getPersonalTasks();
 
   return (
-    <WidgetCard title="Personal Tasks">
+    <WidgetCard title="Personal Tasks" id="personal-tasks-section">
       <PersonalTasksCardBody tasks={tasks} />
     </WidgetCard>
   );

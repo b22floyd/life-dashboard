@@ -4,15 +4,18 @@ export function WidgetCard({
   title,
   action,
   className,
+  id,
   children,
 }: {
   title: string;
   action?: ReactNode;
   className?: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
     <section
+      id={id}
       className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${className ?? ""}`}
     >
       <div className="mb-4 flex items-center justify-between">

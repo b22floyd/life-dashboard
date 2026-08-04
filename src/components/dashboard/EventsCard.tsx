@@ -25,6 +25,7 @@ export async function EventsCard({
   return (
     <WidgetCard
       title="Upcoming Events"
+      id="events-section"
       action={
         connected ? (
           <form action={disconnectGoogleCalendar}>

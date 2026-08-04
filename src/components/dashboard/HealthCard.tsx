@@ -31,6 +31,7 @@ export async function HealthCard({
     <WidgetCard
       title="Health"
       className="lg:col-span-3"
+      id="health-section"
       action={
         connected ? (
           <form action={disconnectWhoop}>

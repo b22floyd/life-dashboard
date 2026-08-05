@@ -36,19 +36,26 @@ export function NavRail() {
   );
 }
 
-// Slim by default (dots only, hugging the left edge so it doesn't sit over
-// card content at typical desktop widths) — expands to show text labels on
-// hover/focus, an auto-hide dock pattern (VS Code activity bar, macOS Dock)
-// that only overlaps page content transiently while the cursor is right at
-// that screen edge. The current section's label stays visible even when
-// collapsed, so there's always an at-a-glance answer to "where am I".
+// Only rendered at `xl:` (1280px) and up, and positioned relative to the
+// viewport's horizontal center rather than pinned to `left-0` — at exactly
+// 1280px wide, the page's own `max-w-6xl` (72rem) content column already
+// leaves only ~64px of true margin outside itself, so a rail pinned to the
+// literal viewport edge (or one that grows wider on hover) would sit on top
+// of card content rather than beside it. `left-[calc(50%-39rem)]` places the
+// rail's own ~2rem-wide dot column with a fixed 1rem gap before the content
+// column's left edge (36rem out from center) — that gap holds at every width
+// from 1280px up, since both the rail and the content shift together with
+// the viewport's center. No hover-to-expand state and no background/border
+// box around the dots — just the dots themselves, so there's nothing to
+// visually overlap or compete with the cards next to it. Labels are native
+// `title` tooltips plus an `aria-label`, not a custom overlay.
 function DesktopRail({ activeId }: { activeId: string | null }) {
   return (
     <nav
       aria-label="Jump to section"
-      className="fixed top-1/2 left-0 z-30 hidden -translate-y-1/2 lg:block"
+      className="fixed top-1/2 left-[calc(50%-39rem)] z-30 hidden -translate-y-1/2 xl:block"
     >
-      <ul className="group flex flex-col gap-0.5 rounded-r-xl border border-l-0 border-zinc-200 bg-white/90 py-3 pr-3 pl-2 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/90">
+      <ul className="flex flex-col gap-3">
         {NAV_SECTIONS.map((section) => {
           const isActive = section.id === activeId;
           return (
@@ -57,26 +64,18 @@ function DesktopRail({ activeId }: { activeId: string | null }) {
                 type="button"
                 onClick={() => scrollToSection(section.id)}
                 aria-current={isActive ? "true" : undefined}
+                aria-label={section.label}
                 title={section.label}
-                className="flex items-center gap-2 rounded-full py-1 pr-1 text-left"
+                className="group block p-1.5"
               >
                 <span
                   aria-hidden
-                  className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
+                  className={`block h-2 w-2 rounded-full transition-colors ${
                     isActive
                       ? "bg-zinc-900 dark:bg-zinc-100"
-                      : "bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-700 dark:group-hover:bg-zinc-600"
+                      : "bg-zinc-300 group-hover:bg-zinc-500 dark:bg-zinc-700 dark:group-hover:bg-zinc-400"
                   }`}
                 />
-                <span
-                  className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-150 ${
-                    isActive
-                      ? "max-w-[10rem] text-zinc-900 opacity-100 dark:text-zinc-100"
-                      : "max-w-0 text-zinc-500 opacity-0 group-hover:max-w-[10rem] group-hover:opacity-100 group-focus-within:max-w-[10rem] group-focus-within:opacity-100 dark:text-zinc-400"
-                  }`}
-                >
-                  {section.label}
-                </span>
               </button>
             </li>
           );
@@ -87,6 +86,10 @@ function DesktopRail({ activeId }: { activeId: string | null }) {
 }
 
 // Mirrors DailyGlancePanel's click-to-open / click-outside-to-close pattern.
+// Covers every width below DesktopRail's `xl:` cutoff (not just phones) —
+// including the 1024-1279px band where the page's content column leaves no
+// safe margin for a persistent side rail, a floating button is the only
+// option that can't overlap a card.
 function MobileNav({ activeId }: { activeId: string | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +113,7 @@ function MobileNav({ activeId }: { activeId: string | null }) {
   }
 
   return (
-    <div ref={containerRef} className="fixed right-5 bottom-5 z-30 lg:hidden">
+    <div ref={containerRef} className="fixed right-5 bottom-5 z-30 xl:hidden">
       {isOpen && (
         <ul className="absolute right-0 bottom-14 mb-2 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
           {NAV_SECTIONS.map((section) => {

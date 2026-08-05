@@ -86,7 +86,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
   }, [transcribeState]);
 
   return (
-    <WidgetCard title="Journal" className="lg:col-span-2">
+    <WidgetCard title="Journal" className="lg:col-span-2" id="journal-section">
       <form
         id="journal-entry-form"
         ref={formRef}

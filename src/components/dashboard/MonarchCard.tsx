@@ -20,7 +20,7 @@ export function MonarchCard() {
   const isMobile = mounted && isMobileDevice();
 
   return (
-    <WidgetCard title="Monarch">
+    <WidgetCard title="Monarch" id="monarch-section">
       {/* No confirmed custom URL scheme for the Monarch app is publicly
           documented, so this doesn't attempt one — inventing an unverified
           scheme would silently do nothing if wrong, indistinguishable from

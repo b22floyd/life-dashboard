@@ -30,18 +30,23 @@ export default function Loading() {
         </div>
       </header>
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-5 px-6 py-8 sm:grid-cols-2 lg:grid-cols-3">
-        <WidgetCardSkeleton titleWidth="w-28" rows={4} />
-        <TabbedListCardSkeleton titleWidth="w-24" />
-        <TabbedListCardSkeleton titleWidth="w-32" />
-        <WidgetCardSkeleton titleWidth="w-28" rows={5} />
-        <WidgetCardSkeleton className="lg:col-span-3" titleWidth="w-28" rows={2} />
-        <WidgetCardSkeleton titleWidth="w-40" rows={3} />
-        <WidgetCardSkeleton titleWidth="w-48" rows={3} />
+        <WidgetCardSkeleton id="personal-tasks-section" titleWidth="w-28" rows={4} />
+        <TabbedListCardSkeleton id="work-tasks-section" titleWidth="w-24" />
+        <TabbedListCardSkeleton id="events-section" titleWidth="w-32" />
+        <WidgetCardSkeleton id="habits-section" titleWidth="w-28" rows={5} />
+        <WidgetCardSkeleton
+          id="annual-goals-section"
+          className="lg:col-span-3"
+          titleWidth="w-28"
+          rows={2}
+        />
+        <WidgetCardSkeleton id="cleaning-section" titleWidth="w-40" rows={3} />
+        <WidgetCardSkeleton id="contacts-section" titleWidth="w-48" rows={3} />
         <MealPlanGroceryCardSkeleton />
-        <WidgetCardSkeleton titleWidth="w-20" rows={1} />
-        <JournalCardSkeleton />
+        <WidgetCardSkeleton id="monarch-section" titleWidth="w-20" rows={1} />
+        <JournalCardSkeleton id="journal-section" />
         <HealthCardSkeleton />
-        <WorkoutCardSkeleton />
+        <WorkoutCardSkeleton id="workout-section" />
       </main>
     </div>
   );

@@ -83,9 +83,12 @@ export function MealPlanGroceryCardSkeleton() {
 }
 
 // Mirrors the quick-log form on the left and the progress chart on the right.
-export function WorkoutCardSkeleton() {
+export function WorkoutCardSkeleton({ id }: { id?: string } = {}) {
   return (
-    <section className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3">
+    <section
+      id={id}
+      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3"
+    >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-32" />
       </div>
@@ -101,9 +104,12 @@ export function WorkoutCardSkeleton() {
 }
 
 // Mirrors the textarea plus the condensed upload/save button row beneath it.
-export function JournalCardSkeleton() {
+export function JournalCardSkeleton({ id }: { id?: string } = {}) {
   return (
-    <section className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2">
+    <section
+      id={id}
+      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2"
+    >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-16" />
       </div>

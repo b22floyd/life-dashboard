@@ -189,7 +189,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
   }
 
   return (
-    <WidgetCard title="Weight Training" className="lg:col-span-3">
+    <WidgetCard title="Weight Training" className="lg:col-span-3" id="workout-section">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <form ref={parseFormRef} action={parseFormAction} className="mb-4 flex flex-col gap-3">

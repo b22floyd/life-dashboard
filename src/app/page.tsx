@@ -12,6 +12,7 @@ import { MonarchCard } from "@/components/dashboard/MonarchCard";
 import { JournalCardLoader } from "@/components/dashboard/JournalCardLoader";
 import { WorkoutCardLoader } from "@/components/dashboard/WorkoutCardLoader";
 import { HealthCard } from "@/components/dashboard/HealthCard";
+import { NavRail } from "@/components/dashboard/NavRail";
 import { WidgetCardSkeleton } from "@/components/dashboard/Skeleton";
 import {
   HealthCardSkeleton,
@@ -56,7 +57,16 @@ export default async function Home({
         <Suspense fallback={<WidgetCardSkeleton id="habits-section" titleWidth="w-28" rows={5} />}>
           <HabitsCard />
         </Suspense>
-        <Suspense fallback={<WidgetCardSkeleton className="lg:col-span-3" titleWidth="w-28" rows={2} />}>
+        <Suspense
+          fallback={
+            <WidgetCardSkeleton
+              id="annual-goals-section"
+              className="lg:col-span-3"
+              titleWidth="w-28"
+              rows={2}
+            />
+          }
+        >
           <AnnualGoalsCard />
         </Suspense>
         <Suspense fallback={<WidgetCardSkeleton id="cleaning-section" titleWidth="w-40" rows={3} />}>
@@ -69,16 +79,17 @@ export default async function Home({
           <MealPlanGroceryCard />
         </Suspense>
         <MonarchCard />
-        <Suspense fallback={<JournalCardSkeleton />}>
+        <Suspense fallback={<JournalCardSkeleton id="journal-section" />}>
           <JournalCardLoader />
         </Suspense>
         <Suspense fallback={<HealthCardSkeleton />}>
           <HealthCard error={whoopError} errorDetail={whoopErrorDetail} />
         </Suspense>
-        <Suspense fallback={<WorkoutCardSkeleton />}>
+        <Suspense fallback={<WorkoutCardSkeleton id="workout-section" />}>
           <WorkoutCardLoader />
         </Suspense>
       </main>
+      <NavRail />
     </div>
   );
 }

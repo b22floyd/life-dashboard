@@ -1,3 +1,5 @@
+import { getSectionAccentClass } from "@/lib/section-category";
+
 // Tailwind's built-in `animate-pulse` (a subtle opacity pulse) rather than a
 // custom gradient-sweep shimmer — it's the standard, dependency-free way to
 // signal "loading" without writing new keyframes, and reads as the same
@@ -31,7 +33,7 @@ export function WidgetCardSkeleton({
   return (
     <section
       id={id}
-      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${className ?? ""}`}
+      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${getSectionAccentClass(id)} ${className ?? ""}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className={`h-4 ${titleWidth}`} />

@@ -1,3 +1,4 @@
+import { getSectionAccentClass } from "@/lib/section-category";
 import { Skeleton } from "./Skeleton";
 
 // Work Tasks and Upcoming Events share the same Today/Tomorrow/Upcoming
@@ -7,7 +8,7 @@ export function TabbedListCardSkeleton({ id, titleWidth = "w-28" }: { id?: strin
   return (
     <section
       id={id}
-      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${getSectionAccentClass(id)}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className={`h-4 ${titleWidth}`} />
@@ -32,7 +33,7 @@ export function HealthCardSkeleton() {
   return (
     <section
       id="health-section"
-      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3"
+      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3 ${getSectionAccentClass("health-section")}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-16" />
@@ -59,7 +60,7 @@ export function MealPlanGroceryCardSkeleton() {
   return (
     <section
       id="meal-plan-section"
-      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3"
+      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3 ${getSectionAccentClass("meal-plan-section")}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-56" />
@@ -87,7 +88,7 @@ export function WorkoutCardSkeleton({ id }: { id?: string } = {}) {
   return (
     <section
       id={id}
-      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3"
+      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-3 ${getSectionAccentClass(id)}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-32" />
@@ -108,7 +109,7 @@ export function JournalCardSkeleton({ id }: { id?: string } = {}) {
   return (
     <section
       id={id}
-      className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2"
+      className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2 ${getSectionAccentClass(id)}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-16" />

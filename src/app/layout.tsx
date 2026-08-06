@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppSplashOverlay } from "@/components/AppSplashOverlay";
+import { APPLE_SPLASH_DEVICES, DEFAULT_SPLASH_DEVICE, splashImageKey } from "@/lib/apple-splash-devices";
 import { pickPhrase } from "@/lib/splash";
 import "./globals.css";
 
@@ -27,6 +28,22 @@ export const metadata: Metadata = {
     // status bar, which needs safe-area-inset padding this app doesn't have
     // yet and would otherwise clip the header on notched iPhones.
     statusBarStyle: "black",
+    // iOS's own native launch-screen image for standalone (home-screen)
+    // launches — this is what's actually shown in the gap between tapping
+    // the icon and the real page loading. The manifest's background_color
+    // is NOT honored for this by iOS the way it is on Android/desktop, so
+    // without this, that gap is a plain white screen no matter how the web
+    // app's own splash is built, since none of this app's own HTML/CSS/JS
+    // has started loading yet at that point. One entry per device bucket in
+    // apple-splash-devices.ts, most specific first; the last, media-less
+    // entry is a catch-all for any device none of the specific ones match.
+    startupImage: [
+      ...APPLE_SPLASH_DEVICES.map((device) => ({
+        url: `/apple-splash/${splashImageKey(device)}`,
+        media: `(device-width: ${device.cssWidth}px) and (device-height: ${device.cssHeight}px) and (-webkit-device-pixel-ratio: ${device.dpr}) and (orientation: portrait)`,
+      })),
+      `/apple-splash/${splashImageKey(DEFAULT_SPLASH_DEVICE)}`,
+    ],
   },
   other: {
     // appleWebApp above already emits the modern, unprefixed

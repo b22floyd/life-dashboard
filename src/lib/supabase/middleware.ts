@@ -47,13 +47,21 @@ export async function updateSession(request: NextRequest) {
   // file-extension exclusions. A redirect to /login here would silently
   // break the home screen icon and installability for anyone not currently
   // signed in.
-  const isPwaAssetRoute = [
-    "/manifest.webmanifest",
-    "/icon",
-    "/apple-icon",
-    "/icon-192",
-    "/icon-512",
-  ].includes(request.nextUrl.pathname);
+  const isPwaAssetRoute =
+    [
+      "/manifest.webmanifest",
+      "/icon",
+      "/apple-icon",
+      "/icon-192",
+      "/icon-512",
+    ].includes(request.nextUrl.pathname) ||
+    // iOS's native standalone-launch splash image — dynamically-sized
+    // (/apple-splash/<width>x<height>), so it needs a prefix match rather
+    // than the exact-path list above. Fetched the same cookie-less way as
+    // the icons: a redirect to /login here would mean the actual "AppSplash
+    // startup image" iOS shows before the page ever loads is just a broken
+    // image / the default blank white screen this whole thing exists to fix.
+    request.nextUrl.pathname.startsWith("/apple-splash/");
 
   if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute && !isPwaAssetRoute) {
     const url = request.nextUrl.clone();

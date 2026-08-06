@@ -113,13 +113,18 @@ export function TasksCardBody({
 
   function handleSaveSelection() {
     setSaveError(null);
+    // Switch to the tracked-tasks view immediately; checkedIds already holds
+    // exactly what the user selected, so there's nothing left to wait on
+    // before showing it. Reopens the picker (with the same selection still
+    // intact) and surfaces the error if the save actually failed.
+    setEditing(false);
     startSaveTransition(async () => {
       const result = await saveTodoistProjectSelection(Array.from(checkedIds));
       if ("error" in result) {
         setSaveError(result.error);
+        setEditing(true);
         return;
       }
-      setEditing(false);
       router.refresh();
     });
   }

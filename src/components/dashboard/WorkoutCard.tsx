@@ -170,20 +170,55 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
       return;
     }
 
+    // Capture the form's current values so they can be restored if the save
+    // fails, then clear the form and drop the new session into history/the
+    // progress chart immediately — the server assigns the real id once the
+    // save actually lands, reconciled by router.refresh() on success.
+    const savedName = sessionName;
+    const savedCategory = category;
+    const savedExercises = exercises;
+    const optimisticSession: WorkoutSession = {
+      id: `optimistic-${Date.now()}`,
+      session_date: getLocalDateString(),
+      name: savedName.trim() || null,
+      category: savedCategory,
+      created_at: new Date().toISOString(),
+      exercises: cleaned.map((exercise, index) => ({
+        id: `optimistic-exercise-${index}`,
+        exercise_name: exercise.name,
+        position: index,
+        sets: exercise.sets.map((set, setIndex) => ({
+          id: `optimistic-set-${setIndex}`,
+          set_number: setIndex + 1,
+          weight: set.weight,
+          reps: set.reps,
+        })),
+      })),
+    };
+
+    setLocalSessions((current) => [optimisticSession, ...current]);
+    setSessionName("");
+    setCategory(null);
+    setExercises([]);
+
     startSaveTransition(async () => {
       const result = await saveWorkoutSession({
-        name: sessionName.trim() || null,
-        category,
+        name: savedName.trim() || null,
+        category: savedCategory,
         sessionDate: getLocalDateString(),
         exercises: cleaned,
       });
       if ("error" in result) {
+        // Nothing was actually saved — restore exactly what the user had
+        // rather than leaving them to retype it, and drop the optimistic
+        // entry rather than waiting on a refresh that wouldn't fix it.
         setSaveError(result.error);
+        setLocalSessions((current) => current.filter((s) => s.id !== optimisticSession.id));
+        setSessionName(savedName);
+        setCategory(savedCategory);
+        setExercises(savedExercises);
         return;
       }
-      setSessionName("");
-      setCategory(null);
-      setExercises([]);
       router.refresh();
     });
   }

@@ -45,6 +45,7 @@ export function MealPlanSection({
   initialEntries: MealPlanEntry[];
 }) {
   const router = useRouter();
+  const [groceryAddError, setGroceryAddError] = useState<string | null>(null);
 
   // Renders immediately from the server's best-effort guess (its clock is
   // effectively UTC on Vercel), then silently corrects on mount below if the
@@ -110,6 +111,10 @@ export function MealPlanSection({
         leftoverMealSlot: entry.leftoverMealSlot,
       });
       if ("error" in result) setSaveError(result.error);
+      // Called unconditionally, not just on success — the optimistic edit
+      // already applied via updateEntryLocal above needs this refresh to be
+      // quietly reverted back to server truth if the save actually failed.
+      router.refresh();
     });
   }
 
@@ -196,14 +201,16 @@ export function MealPlanSection({
   function handleAddParsedItems() {
     const cleaned = parsedItems.map((item) => item.trim()).filter(Boolean);
     if (cleaned.length === 0) return;
+    // Close the ingredient panel immediately rather than leaving it sitting
+    // in an "Adding…" state for the round trip — a failure surfaces via the
+    // top-level groceryAddError banner instead, since this panel won't be
+    // open anymore to show it inline.
+    setGroceryAddError(null);
+    setParsingKey(null);
+    setParsedItems([]);
     startAddingTransition(async () => {
       const result = await addItemsToGroceryList(cleaned);
-      if ("error" in result) {
-        setParseError(result.error);
-        return;
-      }
-      setParsingKey(null);
-      setParsedItems([]);
+      if ("error" in result) setGroceryAddError(result.error);
       router.refresh();
     });
   }
@@ -231,6 +238,9 @@ export function MealPlanSection({
 
       {saveError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
       {copyError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{copyError}</p>}
+      {groceryAddError && (
+        <p className="mb-2 text-sm text-red-600 dark:text-red-400">{groceryAddError}</p>
+      )}
 
       <div className="flex max-h-96 flex-col gap-3 overflow-y-auto pr-1">
         {DAYS_OF_WEEK.map((day) => (

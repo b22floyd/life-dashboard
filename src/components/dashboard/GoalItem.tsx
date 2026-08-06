@@ -304,7 +304,7 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
                 </button>
 
                 {notesExpanded && (
-                  <div className="mt-2 flex flex-col gap-2">
+                  <div className="mt-3 flex flex-col gap-2">
                     <div className="flex gap-2">
                       <textarea
                         value={noteText}

@@ -434,6 +434,15 @@ Two handlers the audit flagged were deliberately left as-is, not overlooked: `ha
 
 Verified by exercising both fixes in a Playwright browser preview against the real (session-less, so guaranteed-to-fail) server actions: for Weight Training, filling in a session and clicking Save cleared the form and bumped Session History from (1) to (2) within 30ms of the click, then — once the expected "You must be signed in" error came back — restored the typed name and dropped the count back to (1); for Work Tasks, clicking Save on a changed project selection closed the picker immediately, then reopened it with the error message and the same checkboxes still checked once the save failed.
 
+### Collapse/Expand Consistency Audit
+
+A pass across every collapse/expand toggle on the dashboard — Journal's Entries, Weight Training's Session History, Weight Tracker's History, Annual Goals' Checkpoints & Notes (and its nested Check-in Notes), Routine Cleaning Reminders' Recently Completed, and Contacts' Recently Contacted — checked against four criteria: toggle icon/animation, default collapsed state, count-in-label formatting, and expanded-content spacing. Most of this was already unified by an earlier design-consistency pass this session (`Standardize toggle divider wrapper across all 7 collapse sections`), and re-checking confirmed it held up:
+
+- **Icon and animation** — all seven toggles use the exact same `▾`/`▸` `<span>`, the identical button `className`, and none of them animate the expand/collapse at all (a plain conditional render, no transition) — already byte-for-byte consistent everywhere, nothing to change.
+- **Default state** — every one of the seven is `useState(false)`, collapsed by default with no exceptions — already consistent.
+- **Count-in-label format** — the `{count > 0 && \` (${count})\`}` suffix is identical everywhere it's used. Annual Goals' "Checkpoints & Notes" header is the one toggle without a count, but that's not an oversight: a `{completed}/{total} checkpoints complete` line already sits above it, always visible regardless of collapse state — adding a redundant count to the toggle itself would duplicate that rather than add information.
+- **Expanded-content spacing** — one real gap turned up: `GoalItem.tsx`'s nested Check-in Notes content wrapper used `mt-2` while every other equivalent case (Journal, Workout, Weight Tracker, Cleaning, Contacts) uses `mt-3` for content nested inside its own toggle's divider wrapper. Fixed to `mt-3` to match. The Checkpoints list's own tighter `gap-1.5` was left alone — it's a compact list of plain checkbox rows, not the padded card-style rows (`rounded-lg bg-zinc-50 px-3 py-2`) every other expanded list uses, so a tighter gap there is a reasonable difference in kind, not a missed match.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

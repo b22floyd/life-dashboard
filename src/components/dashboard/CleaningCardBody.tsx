@@ -10,11 +10,11 @@ import {
   updateCleaningTaskFrequency,
   type AddCleaningTaskState,
 } from "@/app/actions/cleaning";
+import { getLocalDateString } from "@/lib/date-utils";
 import {
   CLEANING_FREQUENCIES,
   CLEANING_FREQUENCY_LABELS,
   computeCleaningStatus,
-  isCleaningTaskVisible,
   type CleaningFrequency,
   type CleaningTaskWithStatus,
 } from "@/lib/cleaning-utils";
@@ -22,10 +22,21 @@ import { useHasMounted } from "@/lib/use-has-mounted";
 
 const initialAddState: AddCleaningTaskState = null;
 
-function statusLabel(task: CleaningTaskWithStatus): string {
+// `task.nextDueAt` is the active overdue/due Sunday while isDue, otherwise
+// the next upcoming one — see computeCleaningStatus's own doc comment.
+function statusLabel(task: CleaningTaskWithStatus, todayLocalDate: string): string {
   if (task.lastCompletedAt === null) return "never done";
-  if (task.isDue) return `done ${task.daysSinceCompleted}d ago`;
-  return `done ${task.daysSinceCompleted}d ago, due in ${task.daysUntilDue}d`;
+  if (!task.nextDueAt) return "";
+
+  const dueLocalDate = getLocalDateString(new Date(task.nextDueAt));
+  if (task.isDue) {
+    return dueLocalDate < todayLocalDate
+      ? `overdue since ${formatNextDue(task.nextDueAt)}`
+      : `due ${formatNextDue(task.nextDueAt)}`;
+  }
+  return `next due ${formatNextDue(task.nextDueAt)}${
+    task.daysUntilDue !== null ? ` (in ${task.daysUntilDue}d)` : ""
+  }`;
 }
 
 // nextDueAt is an absolute instant, so formatting it (unlike the relative
@@ -73,22 +84,19 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
 
   const [recentlyCompletedExpanded, setRecentlyCompletedExpanded] = useState(false);
 
+  // The main list only ever shows tasks not yet done for their current (or
+  // upcoming) cycle — see visibleTasks below — so checking one off here
+  // always means "mark done now," never an undo/uncheck. Optimistically
+  // stamps lastCompletedAt to now and lets computeCleaningStatus (re-run at
+  // render time, below) derive isDue/isHidden/nextDueAt fresh from that.
   function handleToggle(task: CleaningTaskWithStatus) {
     setActionError(null);
-    const willComplete = task.isDue;
-    // Optimistic approximation: recompute status as if the task had just
-    // been marked done (or as if it had never been done, when unchecking) —
-    // the exact prior completion history isn't tracked client-side, and
-    // router.refresh() below reconciles with the real state either way.
-    const optimisticStatus = computeCleaningStatus(
-      task,
-      willComplete ? new Date().toISOString() : null,
-    );
+    const completedAt = new Date().toISOString();
     setLocalTasks((current) =>
-      current.map((t) => (t.id === task.id ? optimisticStatus : t)),
+      current.map((t) => (t.id === task.id ? { ...t, lastCompletedAt: completedAt } : t)),
     );
     startActionTransition(async () => {
-      const result = await setCleaningTaskCompletion(task.id, willComplete);
+      const result = await setCleaningTaskCompletion(task.id, true);
       if ("error" in result) setActionError(result.error);
       router.refresh();
     });
@@ -106,11 +114,8 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
 
   function handleFrequencyChange(task: CleaningTaskWithStatus, frequency: CleaningFrequency) {
     setActionError(null);
-    const nextTask = { ...task, frequency };
     setLocalTasks((current) =>
-      current.map((t) =>
-        t.id === task.id ? computeCleaningStatus(nextTask, t.lastCompletedAt) : t,
-      ),
+      current.map((t) => (t.id === task.id ? { ...t, frequency } : t)),
     );
     startActionTransition(async () => {
       const result = await updateCleaningTaskFrequency(task.id, frequency);
@@ -139,16 +144,25 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
     });
   }
 
-  // Tasks further than 7 days from due still exist (and remain editable via
-  // handlers above, keyed off localTasks) — they're just not rendered until
-  // they fall within the window, recomputed fresh on every render.
-  const visibleTasks = localTasks.filter((task) => isCleaningTaskVisible(task));
+  // Due status is a fixed Sunday-schedule calculation keyed off the local
+  // calendar day, so — like Habit Streaks' streak math — it's recomputed
+  // fresh here on the client after mount, from each task's raw frequency +
+  // lastCompletedAt, rather than trusted from the server's own best-guess
+  // local date (see cleaning.ts).
+  const today = mounted ? getLocalDateString() : null;
+  const displayTasks = today
+    ? localTasks.map((t) => computeCleaningStatus(t, t.lastCompletedAt, today))
+    : [];
 
-  // The complement of visibleTasks that's also been completed at least once
-  // — a task that's simply never been done yet is "due now" and shows up in
-  // the main list above, not here. Sorted soonest-due-next first.
-  const recentlyCompletedTasks = localTasks
-    .filter((task) => task.lastCompletedAt !== null && !isCleaningTaskVisible(task))
+  // Hidden tasks were completed for the current cycle and are waiting for
+  // Monday to reappear (shown in Recently Completed below instead). Every
+  // other task — whether overdue, due this week, or simply not due yet —
+  // stays in the main list, since only that specific post-completion grace
+  // window is ever hidden now, not a fixed number of days from due.
+  const visibleTasks = displayTasks.filter((task) => !task.isHidden);
+
+  const recentlyCompletedTasks = displayTasks
+    .filter((task) => task.isHidden)
     .sort((a, b) => (a.nextDueAt ?? "").localeCompare(b.nextDueAt ?? ""));
 
   return (
@@ -192,13 +206,15 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
       )}
       {actionError && <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
-      {localTasks.length === 0 ? (
+      {!mounted ? (
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">Loading…</p>
+      ) : localTasks.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
           No cleaning tasks yet — add one above.
         </p>
       ) : visibleTasks.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          Nothing due or coming up in the next 7 days.
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          All cleaning tasks are done for the week — they&apos;ll reappear Monday.
         </p>
       ) : (
         <ul className="flex max-h-72 flex-col gap-2 overflow-y-auto">
@@ -211,7 +227,7 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={!task.isDue}
+                  checked={false}
                   onChange={() => handleToggle(task)}
                   className="h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
                 />
@@ -270,7 +286,7 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
                     : "mt-1 text-xs text-zinc-500 dark:text-zinc-400"
                 }
               >
-                {task.isDue ? "Due now" : "Not due yet"} — {statusLabel(task)}
+                {task.isDue ? "Due now" : "Not due yet"} — {statusLabel(task, today!)}
               </p>
             </li>
           ))}

@@ -1,3 +1,4 @@
+import { getLocalDateString } from "@/lib/date-utils";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeCleaningStatus,
@@ -25,7 +26,13 @@ export async function getCleaningTasks(): Promise<CleaningTaskWithStatus[]> {
     return [];
   }
 
-  const now = new Date();
+  // The server has no way to know the user's actual local timezone, so this
+  // uses the server's own local date as a best-effort approximation — the
+  // same tradeoff getDailyGlanceData's meal-plan lookup already accepts,
+  // rare to matter outside a Sunday/Monday boundary. CleaningCardBody (the
+  // card users actually interact with) recomputes this itself client-side
+  // with the browser's real local date instead of trusting this value.
+  const todayLocalDate = getLocalDateString();
   return ((data ?? []) as CleaningTaskRow[]).map((row) => {
     const completions = row.cleaning_task_completions ?? [];
     const lastCompletedAt =
@@ -40,7 +47,7 @@ export async function getCleaningTasks(): Promise<CleaningTaskWithStatus[]> {
     return computeCleaningStatus(
       { id: row.id, name: row.name, frequency: row.frequency, createdAt: row.created_at },
       lastCompletedAt,
-      now,
+      todayLocalDate,
     );
   });
 }

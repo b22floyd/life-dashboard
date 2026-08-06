@@ -491,6 +491,16 @@ Verified with a Playwright preview mounting several of the updated components di
 
 Verified with a Playwright preview in both color schemes: the wordmark, a distinct phrase, and the three dots render correctly, and repeated loads picked different phrases from the list.
 
+### Minimum Splash Duration
+
+The splash now stays up for at least 2 seconds even when the dashboard's own initial data (the section order lookup in `page.tsx`, which is normally all that gates the route-level splash) resolves almost instantly — a deliberate, consistent entrance rather than a flash that's gone before the phrase is even legible on a fast connection. A slow load is never cut short or held any longer than it already naturally takes.
+
+- **`ensureMinimumDuration(start, minMs = 2000)`** in the new `src/lib/splash.ts` is a floor, never a ceiling: it records elapsed time since `start` and waits out whatever's left of 2 seconds, or resolves immediately if the real work already took longer. `page.tsx` marks `start` at the top of its function body and awaits this right after its own data fetching, before returning any JSX — since Next's `loading.tsx` shows for exactly as long as `page.tsx` takes to resolve, this is the one place that actually controls how long the splash stays up.
+- **`now()` wraps `Date.now()`** for the same reason `loading.tsx`'s phrase picker wraps `Math.random()` in its own named helper: the React Compiler's render-purity lint rule flags impure calls made directly in a component body, even though this route is never memoized and Next re-runs it fresh on every request regardless.
+- **Deliberately scoped to the route-level splash only** — this doesn't touch how long any individual card's own Suspense skeleton shows once the splash itself is gone; those already take exactly as long as their own data needs, which was never the complaint.
+
+Verified two ways. First, standalone: calling `ensureMinimumDuration` after ~50ms of simulated work totaled ~2000ms, while calling it after ~2600ms of simulated work totaled ~2600ms — not ~4600ms — confirming the floor never becomes an added delay on top of already-slow work. Second, end-to-end against real Next SSR timing (a temporary preview route wrapping the exact same fast/slow pattern in `Suspense` with the real splash as its fallback, cleaned up afterward): a near-instant fetch took ~2.0s total to resolve, and a ~2.6s fetch took ~2.6s total, matching the standalone results exactly.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

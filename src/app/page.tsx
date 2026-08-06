@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getSectionOrder } from "@/lib/dashboard-section-order";
 import { resolveSectionOrder } from "@/lib/dashboard-sections";
+import { ensureMinimumDuration, now } from "@/lib/splash";
 import { SectionOrderBoard } from "@/components/dashboard/SectionOrderBoard";
 import { SectionErrorBoundary } from "@/components/dashboard/SectionErrorBoundary";
 import { Header } from "@/components/dashboard/Header";
@@ -36,6 +37,8 @@ export default async function Home({
     whoop_error_detail?: string;
   }>;
 }) {
+  const splashStart = now();
+
   const {
     google_error: googleError,
     google_error_detail: googleErrorDetail,
@@ -45,6 +48,14 @@ export default async function Home({
 
   const savedOrder = await getSectionOrder();
   const sectionOrder = resolveSectionOrder(savedOrder);
+
+  // Route-level loading.tsx (the splash) is shown by Next for exactly as
+  // long as this function takes to resolve — on a fast connection that's
+  // often under 100ms, too quick for the phrase to actually be read. This
+  // holds the splash open until at least 2s have passed since the request
+  // started, and does nothing if the work above already took longer than
+  // that (never cuts a genuinely slow load short, never adds a ceiling).
+  await ensureMinimumDuration(splashStart);
 
   const sections = [
     {

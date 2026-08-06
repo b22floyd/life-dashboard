@@ -35,9 +35,12 @@ export async function Header() {
               <span className="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">
                 {user.email}
               </span>
+              {/* Desktop-only — with the email and this both showing, the
+                  mobile header has too many competing elements; the same
+                  export is still reachable directly at /api/export. */}
               <a
                 href="/api/export"
-                className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="hidden rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 sm:inline-block dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Export My Data
               </a>

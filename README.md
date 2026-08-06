@@ -480,6 +480,17 @@ Two things were deliberately left as they already were, not overlooked: `getWeig
 
 Verified with a Playwright preview mounting several of the updated components directly with `null` data (cleaned up afterward): `SectionLoadError`'s Retry button clicks without throwing; Grocery's items list shows the load error while its independently-loaded staples chips and "Add an item" form stay fully working; Journal's compose form and file upload stay usable while its entry history shows the load error; the Health card's "As of" line renders in neutral gray for a fresh snapshot and switches to amber "Data may be out of date" copy for a 50-hour-old one.
 
+### Splash Screen Redesign
+
+`src/app/loading.tsx` — the very first thing shown when the app opens, before `page.tsx` is ready to stream anything — used to mirror the entire dashboard grid as a wall of gray skeleton boxes. Replaced with a minimal, centered splash: a small uppercase "Life Dashboard" wordmark, a short motivational phrase below it, and three quietly breathing dots underneath, on the app's existing `bg-zinc-50 dark:bg-black` palette.
+
+- **The phrase is one of ten, picked fresh per load** — "Own your day," "Show up today," "Discipline creates freedom," and so on — via a small module-level `pickPhrase()` helper rather than calling `Math.random()` directly in the component body, which the React Compiler's render-purity lint rule flags even though nothing here is ever memoized (Next invokes this fresh per request regardless).
+- **Two custom CSS animations, both intentionally restrained.** The wordmark-and-phrase block gets a single `splash-fade-in` (fade plus a 6px rise, one time, on mount) using an ease-out curve with no overshoot. The three dots each run `splash-dot-breathe` — a slow, staggered opacity/scale pulse — rather than a spinner or a bouncing-dots pattern, which read as more "loading widget" than "calm and premium." Both are defined in `globals.css` as plain `@keyframes`, not a JS animation library, since a splash screen with no interactivity has no reason to ship any client JS; `loading.tsx` stays a plain Server Component.
+- **Respects `prefers-reduced-motion`** — both animations are disabled outright for anyone with that preference set, showing the final state immediately instead.
+- **The per-card loading skeletons are untouched.** This only replaces the route-level splash; `page.tsx`'s own Suspense fallbacks (the individual `WidgetCardSkeleton`/`TabbedListCardSkeleton`/etc.) still show while each card's own data streams in a beat later — a genuinely different moment (the app opening) from populating the dashboard's own sections.
+
+Verified with a Playwright preview in both color schemes: the wordmark, a distinct phrase, and the three dots render correctly, and repeated loads picked different phrases from the list.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

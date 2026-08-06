@@ -242,8 +242,8 @@ export function TasksCardBody({
                 onChange={() => handleToggleComplete(task.id)}
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
               />
-              <div className="flex-1">
-                <p className="text-sm text-zinc-700 dark:text-zinc-300">{task.content}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm break-words text-zinc-700 dark:text-zinc-300">{task.content}</p>
                 {task.dueDate && (
                   <p className="text-xs text-zinc-400 dark:text-zinc-500">
                     {formatDueDate(task.dueDate)}

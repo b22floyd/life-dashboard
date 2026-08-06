@@ -101,18 +101,28 @@ export function RecoveryTrendChart({ data }: { data: RecoveryPoint[] }) {
             ))}
           </svg>
 
-          {hoverIndex !== null && (
-            <div
-              className="pointer-events-none absolute rounded-md bg-zinc-900 px-2 py-1 text-xs text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
-              style={{
-                left: `${(points[hoverIndex].x / WIDTH) * 100}%`,
-                top: `${(points[hoverIndex].y / HEIGHT) * 100}%`,
-                transform: "translate(-50%, -130%)",
-              }}
-            >
-              {formatShortDate(points[hoverIndex].timestamp)}: {points[hoverIndex].recoveryScore}%
-            </div>
-          )}
+          {hoverIndex !== null && (() => {
+            // A point near either edge, centered by default, pushes half the
+            // tooltip past the chart's own bounds — nothing here clips
+            // overflow, so that horizontal overflow becomes page-wide
+            // horizontal scroll on mobile. Anchor from the tooltip's own
+            // left/right edge instead of centering when a point is close to
+            // either end (see ProgressChart.tsx, which hit this same bug).
+            const xFraction = points[hoverIndex].x / WIDTH;
+            const translateX = xFraction > 0.85 ? "-100%" : xFraction < 0.15 ? "0%" : "-50%";
+            return (
+              <div
+                className="pointer-events-none absolute rounded-md bg-zinc-900 px-2 py-1 text-xs whitespace-nowrap text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
+                style={{
+                  left: `${xFraction * 100}%`,
+                  top: `${(points[hoverIndex].y / HEIGHT) * 100}%`,
+                  transform: `translate(${translateX}, -130%)`,
+                }}
+              >
+                {formatShortDate(points[hoverIndex].timestamp)}: {points[hoverIndex].recoveryScore}%
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

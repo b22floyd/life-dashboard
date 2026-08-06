@@ -88,7 +88,7 @@ export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
                       !event.isAllDay ? `, ${formatEventTime(event)}` : ""
                     }`}
               </span>
-              <span className="text-zinc-700 dark:text-zinc-300">{event.title}</span>
+              <span className="min-w-0 break-words text-zinc-700 dark:text-zinc-300">{event.title}</span>
             </li>
           ))}
         </ul>

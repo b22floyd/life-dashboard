@@ -33,7 +33,11 @@ export async function fetchMealPlanForWeek(weekStartDate: string): Promise<MealP
     return { error: "You must be signed in to view your meal plan." };
   }
 
-  return { entries: await getMealPlanForWeek(weekStartDate) };
+  const entries = await getMealPlanForWeek(weekStartDate);
+  if (entries === null) {
+    return { error: "Couldn't load this week's meal plan. Try again shortly." };
+  }
+  return { entries };
 }
 
 export async function updateMealPlanEntry(input: {
@@ -95,6 +99,9 @@ export async function copyPreviousWeek(weekStartDate: string): Promise<MealPlanF
 
   const previousWeekStartDate = getPreviousWeekStartDate(weekStartDate);
   const previousEntries = await getMealPlanForWeek(previousWeekStartDate);
+  if (previousEntries === null) {
+    return { error: "Couldn't load last week's meal plan. Try again shortly." };
+  }
   const filledEntries = previousEntries.filter(
     (entry) => entry.mode !== "custom" || entry.content.trim() !== "",
   );
@@ -123,7 +130,11 @@ export async function copyPreviousWeek(weekStartDate: string): Promise<MealPlanF
   }
 
   revalidatePath("/");
-  return { entries: await getMealPlanForWeek(weekStartDate) };
+  const entries = await getMealPlanForWeek(weekStartDate);
+  if (entries === null) {
+    return { error: "Copied last week's plan, but couldn't reload this week to show it. Refresh to see it." };
+  }
+  return { entries };
 }
 
 const ParsedIngredientsSchema = z.object({

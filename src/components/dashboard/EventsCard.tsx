@@ -1,6 +1,7 @@
 import { disconnectGoogleCalendar } from "@/app/actions/google-calendar";
 import { getUpcomingEvents, isGoogleCalendarConnected } from "@/lib/google-calendar";
 import { EventsCardBody } from "./EventsCardBody";
+import { SectionLoadError } from "./SectionLoadError";
 import { WidgetCard } from "./WidgetCard";
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
@@ -59,9 +60,7 @@ export async function EventsCard({
           </a>
         </div>
       ) : events === null ? (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          Couldn&apos;t load events from Google Calendar. Try disconnecting and reconnecting.
-        </p>
+        <SectionLoadError message="Couldn't load events from Google Calendar. If this keeps happening, try disconnecting and reconnecting." />
       ) : (
         <EventsCardBody events={events} />
       )}

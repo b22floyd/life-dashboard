@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/meal-plan";
 import { addItemsToGroceryList } from "@/app/actions/grocery";
 import { getLocalDateString } from "@/lib/date-utils";
+import { SectionLoadError } from "./SectionLoadError";
 import {
   DAYS_OF_WEEK,
   MEAL_MODES,
@@ -42,7 +43,7 @@ export function MealPlanSection({
   initialEntries,
 }: {
   initialWeekStartDate: string;
-  initialEntries: MealPlanEntry[];
+  initialEntries: MealPlanEntry[] | null;
 }) {
   const router = useRouter();
   const [groceryAddError, setGroceryAddError] = useState<string | null>(null);
@@ -53,11 +54,17 @@ export function MealPlanSection({
   // upgrade once we know better" pattern as WeatherWidget's Charlotte
   // fallback, rather than blocking on a client fetch before showing anything.
   const [weekStartDate, setWeekStartDate] = useState(initialWeekStartDate);
-  const [entries, setEntries] = useState<MealPlanEntry[]>(initialEntries);
+  const [entries, setEntries] = useState<MealPlanEntry[]>(initialEntries ?? []);
   const [values, setValues] = useState<Record<string, string>>(() =>
-    valuesFromEntries(initialEntries),
+    valuesFromEntries(initialEntries ?? []),
   );
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // A null initialEntries (the server-side load failed) reuses the same
+  // loadError state and message the client-side week-correction fetch
+  // already shows on its own failure below — one consistent load-error
+  // slot for this section, not two.
+  const [loadError, setLoadError] = useState<string | null>(
+    initialEntries === null ? "Couldn't load this week's meal plan. Try again shortly." : null,
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [, startSaveTransition] = useTransition();
 
@@ -234,7 +241,11 @@ export function MealPlanSection({
         {formatWeekLabel(weekStartDate)}
       </p>
 
-      {loadError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{loadError}</p>}
+      {loadError && (
+        <div className="mb-2">
+          <SectionLoadError message={loadError} />
+        </div>
+      )}
 
       {saveError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
       {copyError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{copyError}</p>}

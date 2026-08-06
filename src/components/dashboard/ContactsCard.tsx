@@ -1,5 +1,6 @@
 import { getContacts } from "@/lib/contacts";
 import { ContactsCardBody } from "./ContactsCardBody";
+import { SectionLoadError } from "./SectionLoadError";
 import { WidgetCard } from "./WidgetCard";
 
 export async function ContactsCard() {
@@ -7,7 +8,11 @@ export async function ContactsCard() {
 
   return (
     <WidgetCard title="Contacts / Relationship Tracker" id="contacts-section">
-      <ContactsCardBody contacts={contacts} />
+      {contacts === null ? (
+        <SectionLoadError message="Couldn't load your contacts right now." />
+      ) : (
+        <ContactsCardBody contacts={contacts} />
+      )}
     </WidgetCard>
   );
 }

@@ -14,7 +14,10 @@ type CleaningTaskRow = {
   cleaning_task_completions: { completed_at: string }[] | null;
 };
 
-export async function getCleaningTasks(): Promise<CleaningTaskWithStatus[]> {
+// Null means "failed to load" — distinct from an empty array (no cleaning
+// tasks configured) so a Supabase outage doesn't masquerade as "all caught
+// up for the week."
+export async function getCleaningTasks(): Promise<CleaningTaskWithStatus[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("cleaning_tasks")
@@ -23,7 +26,7 @@ export async function getCleaningTasks(): Promise<CleaningTaskWithStatus[]> {
 
   if (error) {
     console.error("Failed to load cleaning tasks:", error.message);
-    return [];
+    return null;
   }
 
   // The server has no way to know the user's actual local timezone, so this

@@ -13,6 +13,7 @@ import {
   type AddStapleState,
 } from "@/app/actions/grocery";
 import type { GroceryItem, GroceryStaple } from "@/lib/grocery-utils";
+import { SectionLoadError } from "./SectionLoadError";
 
 const initialAddItemState: AddGroceryItemState = null;
 const initialAddStapleState: AddStapleState = null;
@@ -21,10 +22,17 @@ export function GroceryListSection({
   items,
   staples,
 }: {
-  items: GroceryItem[];
-  staples: GroceryStaple[];
+  items: GroceryItem[] | null;
+  staples: GroceryStaple[] | null;
 }) {
   const router = useRouter();
+  // Null means that particular list failed to load — adding a new item or
+  // staple doesn't depend on the other having loaded, so both forms below
+  // still work; only the affected list shows a load error instead of a
+  // misleading "No items yet."
+  const itemsLoadFailed = items === null;
+  const safeItems = items ?? [];
+  const safeStaples = staples ?? [];
 
   const [addItemState, addItemFormAction, isAddingItem] = useActionState(
     addGroceryItem,
@@ -40,18 +48,18 @@ export function GroceryListSection({
   const stapleFormRef = useRef<HTMLFormElement>(null);
   const stapleSubmittedRef = useRef(false);
 
-  const [localItems, setLocalItems] = useState(items);
+  const [localItems, setLocalItems] = useState(safeItems);
   const [handledItems, setHandledItems] = useState(items);
   if (items !== handledItems) {
     setHandledItems(items);
-    setLocalItems(items);
+    setLocalItems(safeItems);
   }
 
-  const [localStaples, setLocalStaples] = useState(staples);
+  const [localStaples, setLocalStaples] = useState(safeStaples);
   const [handledStaples, setHandledStaples] = useState(staples);
   if (staples !== handledStaples) {
     setHandledStaples(staples);
-    setLocalStaples(staples);
+    setLocalStaples(safeStaples);
   }
 
   const [actionError, setActionError] = useState<string | null>(null);
@@ -202,7 +210,9 @@ export function GroceryListSection({
       )}
       {actionError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
-      {localItems.length === 0 ? (
+      {itemsLoadFailed ? (
+        <SectionLoadError message="Couldn't load your grocery list right now." />
+      ) : localItems.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">No items yet — add one above.</p>
       ) : (
         <ul className="flex max-h-60 flex-col gap-2 overflow-y-auto">

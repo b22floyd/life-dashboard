@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/workout";
 import { getLocalDateString } from "@/lib/date-utils";
 import { WORKOUT_CATEGORIES, type WorkoutCategory, type WorkoutSession } from "@/lib/workout-utils";
+import { SectionLoadError } from "./SectionLoadError";
 import { WidgetCard } from "./WidgetCard";
 import { ProgressChart } from "./ProgressChart";
 
@@ -34,7 +35,13 @@ function formatSessionDate(dateStr: string) {
   });
 }
 
-export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
+export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null }) {
+  // Null means history failed to load — logging a new session doesn't
+  // depend on it, so the compose form still works; only the chart/history
+  // below shows a load error instead of a misleading "no workouts yet."
+  const loadFailed = sessions === null;
+  const safeSessions = sessions ?? [];
+
   const [parseState, parseFormAction, parsing] = useActionState(
     parseWorkoutText,
     initialParseState,
@@ -52,13 +59,13 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [, startDeleteTransition] = useTransition();
 
-  const [localSessions, setLocalSessions] = useState(sessions);
+  const [localSessions, setLocalSessions] = useState(safeSessions);
   // Reset local (optimistic) session state whenever fresh data arrives from
   // the server, following React's "adjusting state when a prop changes" pattern.
   const [handledSessions, setHandledSessions] = useState(sessions);
   if (sessions !== handledSessions) {
     setHandledSessions(sessions);
-    setLocalSessions(sessions);
+    setLocalSessions(safeSessions);
   }
 
   function handleDeleteSession(sessionId: string) {
@@ -380,6 +387,10 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
         </div>
 
         <div className="flex flex-col gap-6">
+          {loadFailed && (
+            <SectionLoadError message="Couldn't load your workout history right now." />
+          )}
+
           <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
             <ProgressChart sessions={localSessions} />
           </div>
@@ -401,7 +412,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] }) {
 
             {historyExpanded && (
               <div className="mt-3 flex max-h-96 flex-col gap-3 overflow-y-auto">
-                {localSessions.length === 0 && (
+                {!loadFailed && localSessions.length === 0 && (
                   <p className="text-sm text-zinc-400 dark:text-zinc-500">
                     No workouts logged yet.
                   </p>

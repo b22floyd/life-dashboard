@@ -1,5 +1,6 @@
 import { getHabits } from "@/lib/habits";
 import { HabitsCardBody } from "./HabitsCardBody";
+import { SectionLoadError } from "./SectionLoadError";
 import { WidgetCard } from "./WidgetCard";
 
 export async function HabitsCard() {
@@ -7,7 +8,11 @@ export async function HabitsCard() {
 
   return (
     <WidgetCard title="Habit Streaks" id="habits-section">
-      <HabitsCardBody habits={habits} />
+      {habits === null ? (
+        <SectionLoadError message="Couldn't load your habits right now." />
+      ) : (
+        <HabitsCardBody habits={habits} />
+      )}
     </WidgetCard>
   );
 }

@@ -20,7 +20,10 @@ type MealPlanRow = {
 // Always returns exactly 21 entries (7 days × Breakfast/Lunch/Dinner),
 // filling in defaults for any slot that doesn't have a row yet for this
 // particular week — a brand-new week (or a brand-new account) has none at all.
-export async function getMealPlanForWeek(weekStartDate: string): Promise<MealPlanEntry[]> {
+// Null means "failed to load" instead — a Supabase error used to fall
+// through to this same all-blank-slots shape, indistinguishable from a
+// genuinely empty new week.
+export async function getMealPlanForWeek(weekStartDate: string): Promise<MealPlanEntry[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("meal_plan_entries")
@@ -29,6 +32,7 @@ export async function getMealPlanForWeek(weekStartDate: string): Promise<MealPla
 
   if (error) {
     console.error("Failed to load meal plan:", error.message);
+    return null;
   }
 
   const byKey = new Map(

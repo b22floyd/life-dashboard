@@ -7,7 +7,9 @@ export type JournalEntry = {
   created_at: string;
 };
 
-export async function getJournalEntries(): Promise<JournalEntry[]> {
+// Null means "failed to load" — distinct from an empty array (no entries
+// written yet).
+export async function getJournalEntries(): Promise<JournalEntry[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("journal_entries")
@@ -17,7 +19,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 
   if (error) {
     console.error("Failed to load journal entries:", error.message);
-    return [];
+    return null;
   }
 
   return data ?? [];

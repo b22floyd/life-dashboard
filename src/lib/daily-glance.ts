@@ -77,15 +77,21 @@ export async function getDailyGlanceData(): Promise<DailyGlanceData> {
     whoopConnected ? getHealthSnapshot() : Promise.resolve(null),
   ]);
 
+  // This summary already treats workTasks/events as "nothing to show" when
+  // null (an external-service failure) rather than surfacing its own error
+  // UI — the full error state belongs on the actual card the user interacts
+  // with, not this convenience overview. The same `?? []` degradation now
+  // applies to every other source here too, now that a Supabase error also
+  // comes back as null instead of always silently reading as "empty."
   return {
-    habits,
-    cleaningTasks,
-    contacts,
-    personalTasks,
+    habits: habits ?? [],
+    cleaningTasks: cleaningTasks ?? [],
+    contacts: contacts ?? [],
+    personalTasks: personalTasks ?? [],
     workTasks,
     events,
-    mealPlanEntries,
-    weightEntries,
+    mealPlanEntries: mealPlanEntries ?? [],
+    weightEntries: weightEntries ?? [],
     weightGoal,
     healthSnapshot,
   };

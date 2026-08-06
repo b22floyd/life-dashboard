@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { GroceryItem, GroceryStaple } from "@/lib/grocery-utils";
 
-export async function getGroceryItems(): Promise<GroceryItem[]> {
+// Null means "failed to load" — distinct from an empty array (grocery list
+// genuinely empty).
+export async function getGroceryItems(): Promise<GroceryItem[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("grocery_items")
@@ -10,13 +12,13 @@ export async function getGroceryItems(): Promise<GroceryItem[]> {
 
   if (error) {
     console.error("Failed to load grocery items:", error.message);
-    return [];
+    return null;
   }
 
   return data ?? [];
 }
 
-export async function getGroceryStaples(): Promise<GroceryStaple[]> {
+export async function getGroceryStaples(): Promise<GroceryStaple[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("grocery_staples")
@@ -25,7 +27,7 @@ export async function getGroceryStaples(): Promise<GroceryStaple[]> {
 
   if (error) {
     console.error("Failed to load grocery staples:", error.message);
-    return [];
+    return null;
   }
 
   return data ?? [];

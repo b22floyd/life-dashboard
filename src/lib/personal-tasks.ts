@@ -6,7 +6,10 @@ export type PersonalTask = {
   created_at: string;
 };
 
-export async function getPersonalTasks(): Promise<PersonalTask[]> {
+// Null means "failed to load" (a Supabase error), kept distinct from an
+// empty array (genuinely no tasks) so the UI doesn't show a misleadingly
+// cheerful "nothing to do" when the real story is a load failure.
+export async function getPersonalTasks(): Promise<PersonalTask[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("personal_tasks")
@@ -15,7 +18,7 @@ export async function getPersonalTasks(): Promise<PersonalTask[]> {
 
   if (error) {
     console.error("Failed to load personal tasks:", error.message);
-    return [];
+    return null;
   }
 
   return data ?? [];

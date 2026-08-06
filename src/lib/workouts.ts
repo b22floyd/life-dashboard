@@ -17,7 +17,9 @@ type RawSession = {
     | null;
 };
 
-export async function getWorkoutSessions(): Promise<WorkoutSession[]> {
+// Null means "failed to load" — distinct from an empty array (no sessions
+// logged yet).
+export async function getWorkoutSessions(): Promise<WorkoutSession[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("workout_sessions")
@@ -33,7 +35,7 @@ export async function getWorkoutSessions(): Promise<WorkoutSession[]> {
 
   if (error) {
     console.error("Failed to load workout sessions:", error.message);
-    return [];
+    return null;
   }
 
   return ((data ?? []) as RawSession[]).map((session) => ({

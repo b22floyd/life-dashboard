@@ -9,7 +9,11 @@ type RawHabit = {
   daily_habit_completions: { completed_date: string }[] | null;
 };
 
-export async function getHabits(): Promise<HabitWithCompletions[]> {
+// Null specifically means "failed to load" (a Supabase error) — kept
+// distinct from an empty array (no habits configured) so the UI can show a
+// clear load-error message instead of a misleading "All habits done for
+// today!" when the failure is what's actually empty-handed.
+export async function getHabits(): Promise<HabitWithCompletions[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("habits")
@@ -18,7 +22,7 @@ export async function getHabits(): Promise<HabitWithCompletions[]> {
 
   if (error) {
     console.error("Failed to load habits:", error.message);
-    return [];
+    return null;
   }
 
   return ((data ?? []) as RawHabit[]).map((habit) => ({

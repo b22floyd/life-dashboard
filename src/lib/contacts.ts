@@ -20,7 +20,10 @@ type ContactRow = {
   contact_log: { contacted_at: string }[] | null;
 };
 
-export async function getContacts(): Promise<ContactWithStatus[]> {
+// Null means "failed to load" — distinct from an empty array (no contacts
+// yet) so a Supabase outage doesn't masquerade as "nobody's due for a
+// reach-out."
+export async function getContacts(): Promise<ContactWithStatus[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contacts")
@@ -32,7 +35,7 @@ export async function getContacts(): Promise<ContactWithStatus[]> {
 
   if (error) {
     console.error("Failed to load contacts:", error.message);
-    return [];
+    return null;
   }
 
   const now = new Date();

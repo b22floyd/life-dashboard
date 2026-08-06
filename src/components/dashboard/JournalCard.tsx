@@ -6,6 +6,7 @@ import { addJournalEntry, deleteJournalEntry, type JournalFormState } from "@/ap
 import { transcribeAudio, type TranscribeState } from "@/app/actions/transcribe";
 import { getLocalDateString } from "@/lib/date-utils";
 import type { JournalEntry } from "@/lib/journal";
+import { SectionLoadError } from "./SectionLoadError";
 import { WidgetCard } from "./WidgetCard";
 
 const initialFormState: JournalFormState = null;
@@ -19,8 +20,14 @@ function formatEntryDate(entryDate: string) {
   });
 }
 
-export function JournalCard({ entries }: { entries: JournalEntry[] }) {
+export function JournalCard({ entries }: { entries: JournalEntry[] | null }) {
   const router = useRouter();
+  // Null means the entry history failed to load — writing a new entry
+  // doesn't depend on that history, so the compose form below still works;
+  // only the entry list itself shows a load error instead of falling
+  // through to a misleading "No entries yet."
+  const loadFailed = entries === null;
+  const safeEntries = entries ?? [];
   const [state, formAction, pending] = useActionState(
     addJournalEntry,
     initialFormState,
@@ -38,13 +45,13 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [, startDeleteTransition] = useTransition();
 
-  const [localEntries, setLocalEntries] = useState(entries);
+  const [localEntries, setLocalEntries] = useState(safeEntries);
   // Reset local (optimistic) entry state whenever fresh data arrives from
   // the server, following React's "adjusting state when a prop changes" pattern.
   const [handledEntries, setHandledEntries] = useState(entries);
   if (entries !== handledEntries) {
     setHandledEntries(entries);
-    setLocalEntries(entries);
+    setLocalEntries(safeEntries);
   }
 
   function handleDeleteEntry(entryId: string) {
@@ -175,11 +182,13 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
 
         {entriesExpanded && (
           <div className="mt-3 flex max-h-80 flex-col gap-3 overflow-y-auto">
-            {localEntries.length === 0 && (
+            {loadFailed ? (
+              <SectionLoadError message="Couldn't load your journal entries right now." />
+            ) : localEntries.length === 0 ? (
               <p className="text-sm text-zinc-400 dark:text-zinc-500">
                 No entries yet — write your first one above.
               </p>
-            )}
+            ) : null}
             {localEntries.map((entry) => (
               <div
                 key={entry.id}

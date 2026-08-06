@@ -16,6 +16,7 @@ import {
   type WeightEntry,
   type WeightGoal,
 } from "@/lib/weight-utils";
+import { SectionLoadError } from "./SectionLoadError";
 import { WeightTrendChart } from "./WeightTrendChart";
 
 const initialAddState: AddWeightEntryState = null;
@@ -32,9 +33,15 @@ export function WeightTrackerSection({
   entries,
   goal,
 }: {
-  entries: WeightEntry[];
+  entries: WeightEntry[] | null;
   goal: WeightGoal;
 }) {
+  // Null means the weight history failed to load — logging a new entry
+  // doesn't depend on it, so the form still works; only the chart/history
+  // below shows a load error instead of a misleading "No weight logged yet."
+  const loadFailed = entries === null;
+  const safeEntries = entries ?? [];
+
   const mounted = useHasMounted();
   const router = useRouter();
 
@@ -97,11 +104,11 @@ export function WeightTrackerSection({
   }, [addState, isAdding]);
 
   // History + delete
-  const [localEntries, setLocalEntries] = useState(entries);
+  const [localEntries, setLocalEntries] = useState(safeEntries);
   const [handledEntries, setHandledEntries] = useState(entries);
   if (entries !== handledEntries) {
     setHandledEntries(entries);
-    setLocalEntries(entries);
+    setLocalEntries(safeEntries);
   }
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -273,7 +280,9 @@ export function WeightTrackerSection({
 
         {historyExpanded && (
           <div className="mt-3 flex max-h-60 flex-col gap-2 overflow-y-auto">
-            {localEntries.length === 0 ? (
+            {loadFailed ? (
+              <SectionLoadError message="Couldn't load your weight history right now." />
+            ) : localEntries.length === 0 ? (
               <p className="text-sm text-zinc-400 dark:text-zinc-500">No weight logged yet.</p>
             ) : (
               [...localEntries].reverse().map((entry) => (

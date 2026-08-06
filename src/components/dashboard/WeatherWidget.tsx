@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getWeatherSnapshot } from "@/lib/weather";
 import type { WeatherSnapshot } from "@/lib/weather-utils";
 import { formatHour, getWeatherIcon, getWeatherLabel } from "@/lib/weather-utils";
+import { RetryButton } from "./RetryButton";
 
 // Our own record of the user's choice, separate from (and in addition to)
 // whatever the browser itself remembers — lets us skip ever calling
@@ -18,6 +19,14 @@ function isMobileDevice(): boolean {
 
 export function WeatherWidget({ initialSnapshot }: { initialSnapshot: WeatherSnapshot | null }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
+  // Reset from the server's latest snapshot whenever a fresh one arrives —
+  // without this, a successful retry's new initialSnapshot prop would never
+  // actually reach this already-mounted component's own state.
+  const [handledSnapshot, setHandledSnapshot] = useState(initialSnapshot);
+  if (initialSnapshot !== handledSnapshot) {
+    setHandledSnapshot(initialSnapshot);
+    setSnapshot(initialSnapshot);
+  }
   const [locationLabel, setLocationLabel] = useState("Charlotte, NC");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,7 +72,12 @@ export function WeatherWidget({ initialSnapshot }: { initialSnapshot: WeatherSna
   }, [isOpen]);
 
   if (!snapshot) {
-    return <span className="text-sm text-zinc-400 dark:text-zinc-500">Weather unavailable</span>;
+    return (
+      <span className="flex items-center gap-2 text-sm text-zinc-400 dark:text-zinc-500">
+        Weather unavailable
+        <RetryButton />
+      </span>
+    );
   }
 
   return (

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DailyGlance } from "./DailyGlance";
 import { DailyGlanceSkeleton, WeatherSkeleton } from "./CardSkeletons";
 import { HeaderDate } from "./HeaderDate";
+import { SectionErrorBoundary } from "./SectionErrorBoundary";
 import { WeatherWidgetLoader } from "./WeatherWidgetLoader";
 
 export async function Header() {
@@ -22,13 +23,17 @@ export async function Header() {
           <HeaderDate />
         </div>
         <div className="flex items-center gap-4">
-          <Suspense fallback={<WeatherSkeleton />}>
-            <WeatherWidgetLoader />
-          </Suspense>
-          {user && (
-            <Suspense fallback={<DailyGlanceSkeleton />}>
-              <DailyGlance />
+          <SectionErrorBoundary label="Weather">
+            <Suspense fallback={<WeatherSkeleton />}>
+              <WeatherWidgetLoader />
             </Suspense>
+          </SectionErrorBoundary>
+          {user && (
+            <SectionErrorBoundary label="Today at a Glance">
+              <Suspense fallback={<DailyGlanceSkeleton />}>
+                <DailyGlance />
+              </Suspense>
+            </SectionErrorBoundary>
           )}
           {user && (
             <div className="flex items-center gap-3">

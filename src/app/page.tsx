@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSectionOrder } from "@/lib/dashboard-section-order";
 import { resolveSectionOrder } from "@/lib/dashboard-sections";
 import { SectionOrderBoard } from "@/components/dashboard/SectionOrderBoard";
+import { SectionErrorBoundary } from "@/components/dashboard/SectionErrorBoundary";
 import { Header } from "@/components/dashboard/Header";
 import { PersonalTasksCard } from "@/components/dashboard/PersonalTasksCard";
 import { TasksCard } from "@/components/dashboard/TasksCard";
@@ -49,118 +50,130 @@ export default async function Home({
     {
       id: "personal-tasks-section",
       node: (
-        <Suspense
-          key="personal-tasks-section"
-          fallback={<WidgetCardSkeleton id="personal-tasks-section" titleWidth="w-28" rows={4} />}
-        >
-          <PersonalTasksCard />
-        </Suspense>
+        <SectionErrorBoundary key="personal-tasks-section" label="Personal Tasks">
+          <Suspense
+            fallback={<WidgetCardSkeleton id="personal-tasks-section" titleWidth="w-28" rows={4} />}
+          >
+            <PersonalTasksCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "work-tasks-section",
       node: (
-        <Suspense
-          key="work-tasks-section"
-          fallback={<TabbedListCardSkeleton id="work-tasks-section" titleWidth="w-24" />}
-        >
-          <TasksCard />
-        </Suspense>
+        <SectionErrorBoundary key="work-tasks-section" label="Work Tasks">
+          <Suspense fallback={<TabbedListCardSkeleton id="work-tasks-section" titleWidth="w-24" />}>
+            <TasksCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "events-section",
       node: (
-        <Suspense
-          key="events-section"
-          fallback={<TabbedListCardSkeleton id="events-section" titleWidth="w-32" />}
-        >
-          <EventsCard error={googleError} errorDetail={googleErrorDetail} />
-        </Suspense>
+        <SectionErrorBoundary key="events-section" label="Upcoming Events">
+          <Suspense fallback={<TabbedListCardSkeleton id="events-section" titleWidth="w-32" />}>
+            <EventsCard error={googleError} errorDetail={googleErrorDetail} />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "habits-section",
       node: (
-        <Suspense
-          key="habits-section"
-          fallback={<WidgetCardSkeleton id="habits-section" titleWidth="w-28" rows={5} />}
-        >
-          <HabitsCard />
-        </Suspense>
+        <SectionErrorBoundary key="habits-section" label="Habit Streaks">
+          <Suspense fallback={<WidgetCardSkeleton id="habits-section" titleWidth="w-28" rows={5} />}>
+            <HabitsCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "annual-goals-section",
       node: (
-        <Suspense
-          key="annual-goals-section"
-          fallback={
-            <WidgetCardSkeleton
-              id="annual-goals-section"
-              className="lg:col-span-3"
-              titleWidth="w-28"
-              rows={2}
-            />
-          }
-        >
-          <AnnualGoalsCard />
-        </Suspense>
+        <SectionErrorBoundary key="annual-goals-section" label="Annual Goals">
+          <Suspense
+            fallback={
+              <WidgetCardSkeleton
+                id="annual-goals-section"
+                className="lg:col-span-3"
+                titleWidth="w-28"
+                rows={2}
+              />
+            }
+          >
+            <AnnualGoalsCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "cleaning-section",
       node: (
-        <Suspense
-          key="cleaning-section"
-          fallback={<WidgetCardSkeleton id="cleaning-section" titleWidth="w-40" rows={3} />}
-        >
-          <CleaningCard />
-        </Suspense>
+        <SectionErrorBoundary key="cleaning-section" label="Routine Cleaning Reminders">
+          <Suspense fallback={<WidgetCardSkeleton id="cleaning-section" titleWidth="w-40" rows={3} />}>
+            <CleaningCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "contacts-section",
       node: (
-        <Suspense
-          key="contacts-section"
-          fallback={<WidgetCardSkeleton id="contacts-section" titleWidth="w-48" rows={3} />}
-        >
-          <ContactsCard />
-        </Suspense>
+        <SectionErrorBoundary key="contacts-section" label="Contacts">
+          <Suspense fallback={<WidgetCardSkeleton id="contacts-section" titleWidth="w-48" rows={3} />}>
+            <ContactsCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "meal-plan-section",
       node: (
-        <Suspense key="meal-plan-section" fallback={<MealPlanGroceryCardSkeleton />}>
-          <MealPlanGroceryCard />
-        </Suspense>
+        <SectionErrorBoundary key="meal-plan-section" label="Meal Planning & Grocery List">
+          <Suspense fallback={<MealPlanGroceryCardSkeleton />}>
+            <MealPlanGroceryCard />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
-    { id: "monarch-section", node: <MonarchCard key="monarch-section" /> },
+    {
+      id: "monarch-section",
+      node: (
+        <SectionErrorBoundary key="monarch-section" label="Monarch">
+          <MonarchCard />
+        </SectionErrorBoundary>
+      ),
+    },
     {
       id: "journal-section",
       node: (
-        <Suspense key="journal-section" fallback={<JournalCardSkeleton id="journal-section" />}>
-          <JournalCardLoader />
-        </Suspense>
+        <SectionErrorBoundary key="journal-section" label="Journal">
+          <Suspense fallback={<JournalCardSkeleton id="journal-section" />}>
+            <JournalCardLoader />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "health-section",
       node: (
-        <Suspense key="health-section" fallback={<HealthCardSkeleton />}>
-          <HealthCard error={whoopError} errorDetail={whoopErrorDetail} />
-        </Suspense>
+        <SectionErrorBoundary key="health-section" label="Health">
+          <Suspense fallback={<HealthCardSkeleton />}>
+            <HealthCard error={whoopError} errorDetail={whoopErrorDetail} />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
     {
       id: "workout-section",
       node: (
-        <Suspense key="workout-section" fallback={<WorkoutCardSkeleton id="workout-section" />}>
-          <WorkoutCardLoader />
-        </Suspense>
+        <SectionErrorBoundary key="workout-section" label="Weight Training">
+          <Suspense fallback={<WorkoutCardSkeleton id="workout-section" />}>
+            <WorkoutCardLoader />
+          </Suspense>
+        </SectionErrorBoundary>
       ),
     },
   ];

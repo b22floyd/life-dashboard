@@ -2,6 +2,7 @@ import { disconnectWhoop } from "@/app/actions/whoop";
 import { getHealthSnapshot, getRecoveryTrend, isWhoopConnected } from "@/lib/whoop";
 import { getWeightEntries, getWeightGoal } from "@/lib/weight";
 import { HealthCardBody } from "./HealthCardBody";
+import { SectionLoadError } from "./SectionLoadError";
 import { WeightTrackerSection } from "./WeightTrackerSection";
 import { WidgetCard } from "./WidgetCard";
 
@@ -65,9 +66,7 @@ export async function HealthCard({
           </a>
         </div>
       ) : snapshot === null ? (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          Couldn&apos;t load data from Whoop. Try disconnecting and reconnecting.
-        </p>
+        <SectionLoadError message="Couldn't load data from Whoop. If this keeps happening, try disconnecting and reconnecting." />
       ) : (
         <HealthCardBody snapshot={snapshot} trend={trend} />
       )}

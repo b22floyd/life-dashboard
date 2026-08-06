@@ -15,6 +15,16 @@ function formatAsOf(iso: string) {
   });
 }
 
+// Whoop typically syncs at least once a day (on waking), so a snapshot this
+// old usually means the last sync attempt actually failed rather than just
+// running a little behind — worth flagging rather than showing the exact
+// same quiet, neutral timestamp regardless of age.
+const STALE_THRESHOLD_MS = 36 * 60 * 60 * 1000;
+
+function isStale(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() > STALE_THRESHOLD_MS;
+}
+
 export function HealthCardBody({
   snapshot,
   trend,
@@ -27,8 +37,18 @@ export function HealthCardBody({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
-          {mounted ? `As of ${formatAsOf(snapshot.asOf)}` : " "}
+        <p
+          className={
+            mounted && isStale(snapshot.asOf)
+              ? "mb-3 text-xs font-medium text-amber-600 dark:text-amber-400"
+              : "mb-3 text-xs text-zinc-400 dark:text-zinc-500"
+          }
+        >
+          {mounted
+            ? isStale(snapshot.asOf)
+              ? `Data may be out of date — last synced ${formatAsOf(snapshot.asOf)}`
+              : `As of ${formatAsOf(snapshot.asOf)}`
+            : " "}
         </p>
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-lg bg-zinc-50 p-3 text-center dark:bg-zinc-800/60">

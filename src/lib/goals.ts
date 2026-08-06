@@ -19,7 +19,9 @@ type RawGoal = {
   goal_checkin_notes: { id: string; note: string; created_at: string }[] | null;
 };
 
-export async function getAnnualGoals(): Promise<AnnualGoal[]> {
+// Null means "failed to load" — distinct from an empty array (no goals set
+// yet).
+export async function getAnnualGoals(): Promise<AnnualGoal[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("annual_goals")
@@ -32,7 +34,7 @@ export async function getAnnualGoals(): Promise<AnnualGoal[]> {
 
   if (error) {
     console.error("Failed to load annual goals:", error.message);
-    return [];
+    return null;
   }
 
   return ((data ?? []) as RawGoal[]).map((goal) => {

@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { completeTodoistTask, saveTodoistProjectSelection } from "@/app/actions/todoist";
 import type { TodoistProject, TodoistTask } from "@/lib/todoist";
+import { SectionLoadError } from "./SectionLoadError";
 
 function parseDueDate(dueDate: string): Date {
   // Date-only strings ("2026-08-10") parse as UTC midnight, which can shift
@@ -152,11 +153,7 @@ export function TasksCardBody({
   }
 
   if (projects === null) {
-    return (
-      <p className="text-sm text-red-600 dark:text-red-400">
-        Couldn&apos;t load Todoist projects. Check that TODOIST_API_TOKEN is set correctly.
-      </p>
-    );
+    return <SectionLoadError message="Couldn't load Todoist projects. Check that TODOIST_API_TOKEN is set correctly." />;
   }
 
   if (editing) {
@@ -237,9 +234,7 @@ export function TasksCardBody({
 
       {taskError && <p className="text-sm text-red-600 dark:text-red-400">{taskError}</p>}
       {tasks === null ? (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          Couldn&apos;t load tasks from Todoist. Try again shortly.
-        </p>
+        <SectionLoadError message="Couldn't load tasks from Todoist." />
       ) : visibleTasks.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
           {tab === "today"

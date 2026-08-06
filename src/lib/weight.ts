@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { WeightEntry, WeightGoal } from "@/lib/weight-utils";
 
-export async function getWeightEntries(): Promise<WeightEntry[]> {
+// Null means "failed to load" — distinct from an empty array (no entries
+// logged yet).
+export async function getWeightEntries(): Promise<WeightEntry[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("weight_entries")
@@ -10,7 +12,7 @@ export async function getWeightEntries(): Promise<WeightEntry[]> {
 
   if (error) {
     console.error("Failed to load weight entries:", error.message);
-    return [];
+    return null;
   }
 
   return (data ?? []).map((row) => ({

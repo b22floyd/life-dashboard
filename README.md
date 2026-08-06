@@ -398,6 +398,16 @@ Two small mobile-only issues, unrelated to each other beyond both being mobile-s
 
 Verified by reproducing the actual bug before trusting the fix: a Playwright preview page rendered the exact same list-row markup with a deliberately long unbroken string, once with the original classes and once with the fix. The unfixed version measured `document.documentElement.scrollWidth` at 696px against a 375px viewport (visibly spilling off-screen in a screenshot) — reproducing the reported bug; the fixed version wrapped the same string cleanly within the card and measured no overflow at all. The same scrollWidth-vs-viewport check, run against the two trend charts with their rightmost point hovered at five phone widths (320-414px), confirmed they don't contribute any overflow either before or after their own tooltip fix.
 
+### Habits: Hide Once Done Today
+
+A habit now drops out of the main Habit Streaks list the moment it's checked off for the day, and reappears the next day ready to check off again — a display-only change in `HabitsCardBody.tsx`, entirely separate from the underlying data:
+
+- `visibleHabits`, a filtered view (`localHabits.filter((h) => !h.completedDates.includes(today))`) computed alongside the existing `today`, is what actually gets rendered. `computeHabitStreaks` and `getChainCalendar` are still called on each full `habit` object exactly as before — nothing about how "current," "best," or the chain-calendar dots are computed changed, so a habit that disappears today and reappears tomorrow shows precisely the streak and history it would have shown had it never been hidden. Checking a habit off already updated `completedDates` optimistically before this change; filtering on that same array is what makes it vanish the instant it's checked, with no new state or effect needed.
+- The up/down reorder buttons' disabled state (previously just the map's own `index === 0` / `index === length - 1`) now derives a `fullIndex` via `localHabits.findIndex(...)` instead, since `index` from mapping over the filtered `visibleHabits` would otherwise disable "move up" on whichever habit happens to be first *among the currently-visible ones* rather than genuinely first in the full, saved order.
+- Three empty-ish states, distinguished explicitly rather than collapsed into one: no habits ever added ("No habits yet — add one above."), at least one habit exists but every one is done today ("All habits done for today." — the new case), and (unchanged) the pre-mount loading flash.
+
+Verified with a Playwright-driven preview using synthetic habits, including one with a real two-day completion history ending yesterday (not yet done today): it renders visibly with its correct `🔥2 · best 2` badge untouched, confirming the streak math is fully independent of the new visibility filter. A habit already marked done for today is correctly absent from that same initial render. Checking a still-visible habit's box hides it immediately. A card whose only habit is already done for today renders "All habits done for today." on first load rather than an empty list.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

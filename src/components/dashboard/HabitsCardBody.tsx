@@ -127,6 +127,11 @@ export function HabitsCardBody({ habits }: { habits: HabitWithCompletions[] }) {
   }
 
   const today = mounted ? getLocalDateString() : null;
+  // Display-only filter — streaks, best streak, and the chain calendar are
+  // all still computed from the full habit (including today's completion),
+  // so a habit that reappears tomorrow shows exactly the same history it
+  // would have if it had stayed visible today.
+  const visibleHabits = today ? localHabits.filter((h) => !h.completedDates.includes(today)) : [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -162,10 +167,12 @@ export function HabitsCardBody({ habits }: { habits: HabitWithCompletions[] }) {
         <p className="text-sm text-zinc-400 dark:text-zinc-500">Loading…</p>
       ) : localHabits.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">No habits yet — add one above.</p>
+      ) : visibleHabits.length === 0 ? (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">All habits done for today.</p>
       ) : (
         <ul className="flex max-h-96 flex-col gap-3 overflow-y-auto">
-          {localHabits.map((habit, index) => {
-            const isDoneToday = habit.completedDates.includes(today!);
+          {visibleHabits.map((habit) => {
+            const fullIndex = localHabits.findIndex((h) => h.id === habit.id);
             const { current, best } = computeHabitStreaks(habit, today!);
             const chain = getChainCalendar(habit, today!);
 
@@ -176,7 +183,7 @@ export function HabitsCardBody({ habits }: { habits: HabitWithCompletions[] }) {
                     <button
                       type="button"
                       onClick={() => handleReorder(habit.id, "up")}
-                      disabled={index === 0}
+                      disabled={fullIndex === 0}
                       aria-label="Move up"
                       className="hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-300"
                     >
@@ -185,7 +192,7 @@ export function HabitsCardBody({ habits }: { habits: HabitWithCompletions[] }) {
                     <button
                       type="button"
                       onClick={() => handleReorder(habit.id, "down")}
-                      disabled={index === localHabits.length - 1}
+                      disabled={fullIndex === localHabits.length - 1}
                       aria-label="Move down"
                       className="hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-300"
                     >
@@ -195,7 +202,7 @@ export function HabitsCardBody({ habits }: { habits: HabitWithCompletions[] }) {
 
                   <input
                     type="checkbox"
-                    checked={isDoneToday}
+                    checked={false}
                     onChange={() => handleToggle(habit, today!)}
                     className="h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 dark:border-zinc-700"
                   />

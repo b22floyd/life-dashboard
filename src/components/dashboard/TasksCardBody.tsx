@@ -33,6 +33,16 @@ function isDueTodayOrOverdue(dueDate: string): boolean {
   return dateKey(due) <= dateKey(new Date());
 }
 
+// The Today tab lumps due-today and overdue together (both need doing now),
+// but only overdue tasks get the attention-grabbing treatment — same
+// amber-accent-text/font-medium pattern Cleaning Reminders and Contacts
+// already use for their own overdue/due state, not a new one.
+function isOverdue(dueDate: string): boolean {
+  const due = parseDueDate(dueDate);
+  if (Number.isNaN(due.getTime())) return false;
+  return dateKey(due) < dateKey(new Date());
+}
+
 function isDueTomorrow(dueDate: string): boolean {
   const due = parseDueDate(dueDate);
   if (Number.isNaN(due.getTime())) return false;
@@ -250,7 +260,13 @@ export function TasksCardBody({
               <div className="min-w-0 flex-1">
                 <p className="text-sm break-words text-zinc-700 dark:text-zinc-300">{task.content}</p>
                 {task.dueDate && (
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <p
+                    className={
+                      isOverdue(task.dueDate)
+                        ? "text-xs font-medium text-amber-600 dark:text-amber-400"
+                        : "text-xs text-zinc-400 dark:text-zinc-500"
+                    }
+                  >
                     {formatDueDate(task.dueDate)}
                   </p>
                 )}

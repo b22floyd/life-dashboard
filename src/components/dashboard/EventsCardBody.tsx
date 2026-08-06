@@ -5,6 +5,7 @@ import type { CalendarEvent } from "@/lib/google-calendar-utils";
 import {
   formatEventDate,
   formatEventTime,
+  isEventStartingSoon,
   isSameLocalDay,
   parseEventDate,
 } from "@/lib/google-calendar-utils";
@@ -79,18 +80,33 @@ export function EventsCardBody({ events }: { events: CalendarEvent[] }) {
         </p>
       ) : (
         <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
-          {visibleEvents.map((event) => (
-            <li key={event.id} className="flex gap-3 text-sm">
-              <span className="w-28 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">
-                {tab === "today"
-                  ? formatEventTime(event)
-                  : `${formatEventDate(event)}${
-                      !event.isAllDay ? `, ${formatEventTime(event)}` : ""
-                    }`}
-              </span>
-              <span className="min-w-0 break-words text-zinc-700 dark:text-zinc-300">{event.title}</span>
-            </li>
-          ))}
+          {visibleEvents.map((event) => {
+            // Only meaningful on the Today tab — an event "starting soon"
+            // tomorrow or later isn't actually soon yet. Same amber-accent/
+            // font-medium treatment Cleaning Reminders, Contacts, and Work
+            // Tasks already use for their own due/overdue state.
+            const soon = tab === "today" && isEventStartingSoon(event, now);
+            return (
+              <li key={event.id} className="flex gap-3 text-sm">
+                <span
+                  className={
+                    soon
+                      ? "w-28 shrink-0 font-medium text-amber-600 dark:text-amber-400"
+                      : "w-28 shrink-0 text-zinc-500 dark:text-zinc-400"
+                  }
+                >
+                  {tab === "today"
+                    ? formatEventTime(event)
+                    : `${formatEventDate(event)}${
+                        !event.isAllDay ? `, ${formatEventTime(event)}` : ""
+                      }`}
+                </span>
+                <span className="min-w-0 break-words text-zinc-700 dark:text-zinc-300">
+                  {event.title}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

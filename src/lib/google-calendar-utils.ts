@@ -40,3 +40,16 @@ export function formatEventDate(event: CalendarEvent): string {
     day: "numeric",
   });
 }
+
+// An event starting within the hour (or that started up to 30 minutes ago,
+// likely still in progress) needs attention now, unlike one later today —
+// all-day events have no specific start time to be "soon" about.
+export function isEventStartingSoon(
+  event: CalendarEvent,
+  now: Date,
+  windowMinutes = 60,
+): boolean {
+  if (event.isAllDay) return false;
+  const diffMinutes = (new Date(event.start).getTime() - now.getTime()) / 60_000;
+  return diffMinutes <= windowMinutes && diffMinutes > -30;
+}

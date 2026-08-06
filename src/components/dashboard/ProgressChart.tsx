@@ -11,13 +11,34 @@ import {
 
 const WIDTH = 600;
 const HEIGHT = 200;
-const PADDING = { top: 16, right: 16, bottom: 28, left: 40 };
+const PADDING = { top: 16, right: 16, bottom: 28, left: 44 };
+const Y_TICK_COUNT = 4;
 
 function formatShortDate(dateStr: string) {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
+}
+
+// Rounds the data's min/max out to a "nice" step (a multiple of 5 lb, since
+// that's how plates and dumbbells actually increment) so the axis reads like
+// a real scale — e.g. 210/220/230/240 — rather than the raw, oddly-specific
+// min/max of whatever Epley's formula happened to compute.
+function getYAxisTicks(dataMin: number, dataMax: number, tickCount: number): number[] {
+  let min = dataMin;
+  let max = dataMax;
+  if (min === max) {
+    const pad = Math.max(5, Math.round(min * 0.05));
+    min -= pad;
+    max += pad;
+  }
+
+  const rawStep = (max - min) / (tickCount - 1);
+  const step = Math.max(5, Math.ceil(rawStep / 5) * 5);
+  const niceMin = Math.floor(min / step) * step;
+
+  return Array.from({ length: tickCount }, (_, i) => niceMin + i * step);
 }
 
 export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
@@ -55,22 +76,30 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
   const oneRepMaxes = series.map((point) => point.oneRepMax);
   const minOneRepMax = oneRepMaxes.length ? Math.min(...oneRepMaxes) : 0;
   const maxOneRepMax = oneRepMaxes.length ? Math.max(...oneRepMaxes) : 0;
-  const oneRepMaxRange = maxOneRepMax - minOneRepMax || 1;
+
+  const yTicks = oneRepMaxes.length ? getYAxisTicks(minOneRepMax, maxOneRepMax, Y_TICK_COUNT) : [];
+  const axisMin = yTicks.length ? yTicks[0] : 0;
+  const axisMax = yTicks.length ? yTicks[yTicks.length - 1] : 1;
+  const axisRange = axisMax - axisMin || 1;
 
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
 
+  function valueToY(value: number) {
+    return PADDING.top + plotHeight - ((value - axisMin) / axisRange) * plotHeight;
+  }
+
   const points = series.map((point, index) => {
     const x =
       PADDING.left + (series.length > 1 ? (index / (series.length - 1)) * plotWidth : plotWidth / 2);
-    const y =
-      PADDING.top +
-      plotHeight -
-      ((point.oneRepMax - minOneRepMax) / oneRepMaxRange) * plotHeight;
-    return { ...point, x, y };
+    return { ...point, x, y: valueToY(point.oneRepMax) };
   });
 
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+
+  const startValue = points.length ? points[0].oneRepMax : null;
+  const currentValue = points.length ? points[points.length - 1].oneRepMax : null;
+  const delta = startValue !== null && currentValue !== null ? currentValue - startValue : null;
 
   return (
     <div>
@@ -117,6 +146,41 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
             </select>
           </div>
 
+          {startValue !== null && currentValue !== null && (
+            <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-400">
+              {points.length > 1 ? (
+                <>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {Math.round(startValue)} lb
+                  </span>{" "}
+                  →{" "}
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {Math.round(currentValue)} lb
+                  </span>
+                  {delta !== null && delta !== 0 && (
+                    <span
+                      className={
+                        delta > 0
+                          ? "ml-2 text-emerald-600 dark:text-emerald-400"
+                          : "ml-2 text-red-600 dark:text-red-400"
+                      }
+                    >
+                      ({delta > 0 ? "+" : ""}
+                      {Math.round(delta)} lb)
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  Current:{" "}
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {Math.round(currentValue)} lb
+                  </span>
+                </>
+              )}
+            </p>
+          )}
+
           {points.length === 0 ? (
             <p className="text-sm text-zinc-400 dark:text-zinc-500">No logged sets yet.</p>
           ) : (
@@ -126,7 +190,33 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
                 className="w-full"
                 role="img"
                 aria-label={`Estimated one-rep max over time for ${selected}`}
+                onClick={() => setHoverIndex(null)}
               >
+                {yTicks.map((tick) => {
+                  const y = valueToY(tick);
+                  return (
+                    <g key={tick}>
+                      <line
+                        x1={PADDING.left}
+                        y1={y}
+                        x2={WIDTH - PADDING.right}
+                        y2={y}
+                        className="stroke-zinc-100 dark:stroke-zinc-800/60"
+                        strokeWidth={1}
+                      />
+                      <text
+                        x={PADDING.left - 8}
+                        y={y}
+                        dominantBaseline="middle"
+                        textAnchor="end"
+                        className="fill-zinc-400 text-[10px] dark:fill-zinc-500"
+                      >
+                        {Math.round(tick)}
+                      </text>
+                    </g>
+                  );
+                })}
+
                 <line
                   x1={PADDING.left}
                   y1={PADDING.top + plotHeight}
@@ -153,11 +243,31 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
                       cx={p.x}
                       cy={p.y}
                       r={hoverIndex === index ? 6 : 4}
-                      className="cursor-pointer fill-blue-600 dark:fill-blue-400"
+                      className="fill-blue-600 dark:fill-blue-400"
+                      pointerEvents="none"
+                    />
+                    {/* Wider, invisible hit target than the 4px dot itself
+                        (painted on top, so it owns all pointer events) —
+                        tapping near a point on a touchscreen, with no hover
+                        to land on the exact pixel first, still registers. */}
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={12}
+                      className="cursor-pointer fill-transparent"
                       onMouseEnter={() => setHoverIndex(index)}
                       onMouseLeave={() =>
                         setHoverIndex((current) => (current === index ? null : current))
                       }
+                      onClick={(e) => {
+                        // Not a toggle: touch (and Playwright's .click())
+                        // synthesizes a mouseenter right before the click
+                        // event, which already sets hoverIndex to this same
+                        // index — toggling here would immediately flip it
+                        // back off on every real tap.
+                        e.stopPropagation();
+                        setHoverIndex(index);
+                      }}
                     />
                     {(index === 0 ||
                       index === points.length - 1 ||
@@ -175,18 +285,30 @@ export function ProgressChart({ sessions }: { sessions: WorkoutSession[] }) {
                 ))}
               </svg>
 
-              {hoverIndex !== null && (
-                <div
-                  className="pointer-events-none absolute rounded-md bg-zinc-900 px-2 py-1 text-xs text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
-                  style={{
-                    left: `${(points[hoverIndex].x / WIDTH) * 100}%`,
-                    top: `${(points[hoverIndex].y / HEIGHT) * 100}%`,
-                    transform: "translate(-50%, -130%)",
-                  }}
-                >
-                  {formatShortDate(points[hoverIndex].date)}: {Math.round(points[hoverIndex].oneRepMax)} lb
-                </div>
-              )}
+              {hoverIndex !== null && (() => {
+                // A CSS quirk with an absolutely-positioned, auto-width box:
+                // when `left` sits near the container's right edge, the
+                // "shrink-to-fit" width calculation only has a sliver of
+                // space to work with and squeezes the box down to that,
+                // wrapping the text instead of respecting its natural
+                // single-line width. Anchoring by the tooltip's own left/
+                // right edge (instead of always centering) for points near
+                // either end keeps the full box within the chart's bounds.
+                const xFraction = points[hoverIndex].x / WIDTH;
+                const translateX = xFraction > 0.85 ? "-100%" : xFraction < 0.15 ? "0%" : "-50%";
+                return (
+                  <div
+                    className="pointer-events-none absolute rounded-md bg-zinc-900 px-2 py-1 text-xs whitespace-nowrap text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
+                    style={{
+                      left: `${xFraction * 100}%`,
+                      top: `${(points[hoverIndex].y / HEIGHT) * 100}%`,
+                      transform: `translate(${translateX}, -130%)`,
+                    }}
+                  >
+                    {formatShortDate(points[hoverIndex].date)}: {Math.round(points[hoverIndex].oneRepMax)} lb
+                  </div>
+                );
+              })()}
             </div>
           )}
         </>

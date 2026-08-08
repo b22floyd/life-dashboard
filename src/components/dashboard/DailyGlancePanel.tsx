@@ -93,9 +93,6 @@ function GlanceContent({
     .filter((habit) => !habit.completedDates.includes(today))
     .map((habit) => ({ id: habit.id, label: habit.name, sectionId: SECTION_IDS.habits }));
 
-  // Personal Tasks have no due date of their own (just a flat running
-  // list), so — unlike Work Tasks — every outstanding one counts as
-  // "today's" here; there's no other date to filter them by.
   const workTasksToday: GlanceItem[] = (data.workTasks ?? [])
     .filter((task) => task.dueDate && isTodoistTaskDueTodayOrOverdue(task.dueDate, today))
     .map((task) => ({
@@ -103,11 +100,17 @@ function GlanceContent({
       label: task.content,
       sectionId: SECTION_IDS.workTasks,
     }));
-  const personalTasksToday: GlanceItem[] = data.personalTasks.map((task) => ({
-    id: `personal-${task.id}`,
-    label: task.content,
-    sectionId: SECTION_IDS.personalTasks,
-  }));
+  // Now that Personal Tasks has its own (manually-set) due dates, this
+  // matches Work Tasks exactly — due today or overdue only, undated tasks
+  // excluded — rather than the old "every outstanding one counts" behavior
+  // from before due dates existed here.
+  const personalTasksToday: GlanceItem[] = data.personalTasks
+    .filter((task) => task.due_date && isTodoistTaskDueTodayOrOverdue(task.due_date, today))
+    .map((task) => ({
+      id: `personal-${task.id}`,
+      label: task.content,
+      sectionId: SECTION_IDS.personalTasks,
+    }));
   const tasksToday = [...workTasksToday, ...personalTasksToday];
 
   const eventsToday: GlanceItem[] = (data.events ?? [])

@@ -4,6 +4,7 @@ export type PersonalTask = {
   id: string;
   content: string;
   created_at: string;
+  due_date: string | null;
 };
 
 // Null means "failed to load" (a Supabase error), kept distinct from an
@@ -13,7 +14,7 @@ export async function getPersonalTasks(): Promise<PersonalTask[] | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("personal_tasks")
-    .select("id, content, created_at")
+    .select("id, content, created_at, due_date")
     .order("created_at", { ascending: true });
 
   if (error) {

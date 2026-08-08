@@ -528,6 +528,26 @@ The "timing issue where the white screen paints before the splash component moun
 
 Verified by fetching each of the 11 specific sizes plus the fallback directly and confirming a `200` with the exact requested pixel dimensions, confirming a request for an unlisted size correctly 404s instead of generating an arbitrary image, and confirming every `<link rel="apple-touch-startup-image">` tag in the rendered `<head>` carries the right `media` query for its size — including the unconditional fallback correctly appearing last with no `media` attribute at all.
 
+### Personal Tasks: Today/Tomorrow/Upcoming Tabs
+
+Personal Tasks now has the same three-tab layout Work Tasks already used — but where Work Tasks' due dates come from Todoist, Personal Tasks has no external source to pull them from, so this had to add the concept of a due date to Personal Tasks in the first place, not just the tabs on top of one that already existed.
+
+- **A new nullable `due_date` column** (migration below) — nullable because a task with no due date is a normal, expected state here (an anytime task), not an error or something implying urgency the way it would for Work Tasks.
+- **The add-task form gained an optional date input** next to the existing text field, and every task — dated or not — can have its due date set, changed, or cleared afterward via a small inline control: a due date shows as a clickable badge (click to change it), and an undated task shows a quiet "+ Add date" link in its place. This is the part of the request that doesn't have a Work Tasks equivalent to copy — since nothing external keeps this in sync, the UI itself has to be the only way to manage it. Saving is optimistic (the task re-buckets into the right tab immediately) and reverts with an error message if the save actually fails, matching this app's established pattern everywhere else.
+- **Bucketing logic mirrors `TasksCardBody` exactly** — Today includes anything due today or overdue (with the same amber/font-medium treatment for overdue specifically), Tomorrow is due-tomorrow only, Upcoming is everything else including undated tasks. Since a personal task's due date is always a plain `"yyyy-mm-dd"` string (no time-of-day component the way a Todoist task's optionally has), the actual comparisons are simpler — direct string comparison instead of `Date` parsing — but the bucketing rules themselves are identical.
+- **Today at a Glance's personal-tasks section changed too.** It previously listed every outstanding personal task unconditionally, because there was no due date to filter by yet — the comment explaining that was accurate when written and is now stale by construction. It now filters to due-today-or-overdue only, exactly like it already did for Work Tasks, so an undated or far-future personal task no longer shows up as if it needs attention today.
+
+```sql
+-- Personal Tasks has no external source (unlike Work Tasks/Todoist) to pull
+-- due dates from, so this is a plain nullable column the user sets/edits
+-- themselves — a task with no due date is treated as "no date yet", not
+-- "due immediately" or an error.
+alter table public.personal_tasks
+  add column due_date date;
+```
+
+Verified with a Playwright preview (synthetic tasks: overdue, due today, due tomorrow, due next week, and one with no date): each landed in the correct tab; setting a due date on the previously-undated task via the inline "+ Add date" control immediately moved it into the Today tab, with no page reload, confirming the optimistic re-bucketing works as intended.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

@@ -2,7 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import type { HealthSnapshot, RecoveryPoint } from "@/lib/whoop-utils";
 
 const TOKEN_ENDPOINT = "https://api.prod.whoop.com/oauth/oauth2/token";
-const API_BASE = "https://api.prod.whoop.com/developer/v1";
+// Whoop fully sunset the v1 data API in October 2025 — the OAuth token
+// endpoint above is unversioned and unaffected, but every /developer/v1/*
+// data call (cycle, recovery, activity/sleep) now 404s. v2 keeps the same
+// paths and response field names, so this is the only change needed.
+const API_BASE = "https://api.prod.whoop.com/developer/v2";
 
 export async function isWhoopConnected(): Promise<boolean> {
   const supabase = await createClient();
@@ -198,11 +202,18 @@ async function whoopFetch<T>(
   return (await response.json()) as T;
 }
 
-// Returns null on any failure (no connection, expired refresh token, API
-// error) so the UI can prompt to reconnect rather than crash.
-export async function getHealthSnapshot(): Promise<HealthSnapshot | null> {
+// "auth_error" means we never had a usable access token (no connection, or
+// the refresh itself failed) — reconnecting is the right advice. "api_error"
+// means the token was valid but Whoop's API rejected/failed the request
+// anyway (e.g. a wrong/retired endpoint, or a Whoop-side outage) — telling
+// the user to reconnect would be misleading, since their connection is fine.
+export type HealthSnapshotResult =
+  | { snapshot: HealthSnapshot }
+  | { snapshot: null; reason: "auth_error" | "api_error" };
+
+export async function getHealthSnapshot(): Promise<HealthSnapshotResult> {
   const accessToken = await getValidAccessToken();
-  if (!accessToken) return null;
+  if (!accessToken) return { snapshot: null, reason: "auth_error" };
 
   const [cycles, recoveries, sleeps] = await Promise.all([
     whoopFetch<WhoopCollection<WhoopCycle>>("/cycle", accessToken, { limit: "1" }),
@@ -216,7 +227,9 @@ export async function getHealthSnapshot(): Promise<HealthSnapshot | null> {
 
   // All three requests failed outright (as opposed to a given record simply
   // not being scored yet) — treat this like "couldn't load".
-  if (cycles === null && recoveries === null && sleeps === null) return null;
+  if (cycles === null && recoveries === null && sleeps === null) {
+    return { snapshot: null, reason: "api_error" };
+  }
 
   const stages = sleep?.score_state === "SCORED" ? sleep.score?.stage_summary : undefined;
   const sleepDurationMs = stages
@@ -229,14 +242,16 @@ export async function getHealthSnapshot(): Promise<HealthSnapshot | null> {
   const cycleScored = cycle?.score_state === "SCORED" ? cycle.score : undefined;
 
   return {
-    recoveryScore: recoveryScored ? Math.round(recoveryScored.recovery_score) : null,
-    restingHeartRate: recoveryScored?.resting_heart_rate ?? null,
-    hrvMilli: recoveryScored?.hrv_rmssd_milli ?? null,
-    sleepDurationMs,
-    sleepPerformancePercentage:
-      sleep?.score_state === "SCORED" ? sleep.score?.sleep_performance_percentage ?? null : null,
-    strain: cycleScored ? cycleScored.strain : null,
-    asOf: recovery?.created_at ?? cycle?.start ?? sleep?.start ?? new Date().toISOString(),
+    snapshot: {
+      recoveryScore: recoveryScored ? Math.round(recoveryScored.recovery_score) : null,
+      restingHeartRate: recoveryScored?.resting_heart_rate ?? null,
+      hrvMilli: recoveryScored?.hrv_rmssd_milli ?? null,
+      sleepDurationMs,
+      sleepPerformancePercentage:
+        sleep?.score_state === "SCORED" ? sleep.score?.sleep_performance_percentage ?? null : null,
+      strain: cycleScored ? cycleScored.strain : null,
+      asOf: recovery?.created_at ?? cycle?.start ?? sleep?.start ?? new Date().toISOString(),
+    },
   };
 }
 

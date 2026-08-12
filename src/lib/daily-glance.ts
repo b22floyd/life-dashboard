@@ -61,7 +61,7 @@ export async function getDailyGlanceData(): Promise<DailyGlanceData> {
     mealPlanEntries,
     weightEntries,
     weightGoal,
-    healthSnapshot,
+    healthResult,
   ] = await Promise.all([
     getHabits(),
     getCleaningTasks(),
@@ -76,6 +76,7 @@ export async function getDailyGlanceData(): Promise<DailyGlanceData> {
     getWeightGoal(),
     whoopConnected ? getHealthSnapshot() : Promise.resolve(null),
   ]);
+  const healthSnapshot = healthResult?.snapshot ?? null;
 
   // This summary already treats workTasks/events as "nothing to show" when
   // null (an external-service failure) rather than surfacing its own error

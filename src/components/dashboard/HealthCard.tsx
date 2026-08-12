@@ -23,7 +23,7 @@ export async function HealthCard({
   errorDetail?: string;
 }) {
   const connected = await isWhoopConnected();
-  const [snapshot, trend] = connected
+  const [healthResult, trend] = connected
     ? await Promise.all([getHealthSnapshot(), getRecoveryTrend()])
     : [null, []];
   const [weightEntries, weightGoal] = await Promise.all([getWeightEntries(), getWeightGoal()]);
@@ -65,10 +65,16 @@ export async function HealthCard({
             Connect Whoop
           </a>
         </div>
-      ) : snapshot === null ? (
-        <SectionLoadError message="Couldn't load data from Whoop. If this keeps happening, try disconnecting and reconnecting." />
+      ) : healthResult?.snapshot == null ? (
+        <SectionLoadError
+          message={
+            healthResult?.reason === "api_error"
+              ? "Whoop's API didn't respond as expected — this isn't a problem with your connection, try again shortly."
+              : "Couldn't load data from Whoop. If this keeps happening, try disconnecting and reconnecting."
+          }
+        />
       ) : (
-        <HealthCardBody snapshot={snapshot} trend={trend} />
+        <HealthCardBody snapshot={healthResult.snapshot} trend={trend} />
       )}
 
       {/* Weight Tracker is independent of the Whoop connection above — it's

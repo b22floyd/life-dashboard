@@ -1,25 +1,66 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { CSS } from "@dnd-kit/utilities";
 import { getSectionAccentClass } from "@/lib/section-category";
 import { useSectionSortable } from "./SectionOrderBoard";
+
+// A per-device "collapsed" preference for collapsible sections, persisted in
+// localStorage rather than Supabase (unlike section order) — this is a much
+// lighter-weight "get it out of my way for now" toggle, not something that
+// needs to follow the user across devices. Read through
+// useSyncExternalStore (with a real subscribe, not a no-op) rather than
+// useState+useEffect so the stored value can be read directly during render
+// without the extra render pass a setState-in-an-effect would add, and so
+// every collapsible card picks up a change immediately if more than one
+// happens to share a listener tick.
+const collapseListeners = new Set<() => void>();
+
+function collapseStorageKey(id: string) {
+  return `dashboard-section-collapsed:${id}`;
+}
+
+function getCollapsedSnapshot(id: string): boolean {
+  return localStorage.getItem(collapseStorageKey(id)) === "true";
+}
+
+function setSectionCollapsed(id: string, collapsed: boolean) {
+  localStorage.setItem(collapseStorageKey(id), collapsed ? "true" : "false");
+  collapseListeners.forEach((listener) => listener());
+}
+
+function subscribeToCollapse(listener: () => void) {
+  collapseListeners.add(listener);
+  return () => collapseListeners.delete(listener);
+}
+
+function useSectionCollapsed(id: string): boolean {
+  return useSyncExternalStore(
+    subscribeToCollapse,
+    () => getCollapsedSnapshot(id),
+    () => false,
+  );
+}
 
 export function WidgetCard({
   title,
   action,
   className,
   id,
+  collapsible,
   children,
 }: {
   title: string;
   action?: ReactNode;
   className?: string;
   id?: string;
+  collapsible?: boolean;
   children: ReactNode;
 }) {
   const accentClass = getSectionAccentClass(id);
   const sortable = useSectionSortable();
+  const canCollapse = Boolean(collapsible && id);
+  const collapsed = useSectionCollapsed(canCollapse ? id! : "") && canCollapse;
 
   const style = sortable
     ? {
@@ -35,16 +76,28 @@ export function WidgetCard({
       style={style}
       className={`flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${accentClass} ${className ?? ""} ${sortable?.isDragging ? "z-10 opacity-70 shadow-lg" : ""}`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className={`flex items-center justify-between ${collapsed ? "" : "mb-4"}`}>
         <div className="flex min-w-0 items-center gap-2">
           {sortable && <DragHandle title={title} />}
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            {title}
-          </h2>
+          {canCollapse ? (
+            <button
+              type="button"
+              onClick={() => setSectionCollapsed(id!, !collapsed)}
+              aria-expanded={!collapsed}
+              className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            >
+              <span aria-hidden>{collapsed ? "▸" : "▾"}</span>
+              {title}
+            </button>
+          ) : (
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              {title}
+            </h2>
+          )}
         </div>
         {action}
       </div>
-      {children}
+      {!collapsed && children}
     </section>
   );
 }

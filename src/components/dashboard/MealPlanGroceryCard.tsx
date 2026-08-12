@@ -19,7 +19,12 @@ export async function MealPlanGroceryCard() {
   ]);
 
   return (
-    <WidgetCard title="Meal Planning & Grocery List" className="lg:col-span-3" id="meal-plan-section">
+    <WidgetCard
+      title="Meal Planning & Grocery List"
+      className="lg:col-span-3"
+      id="meal-plan-section"
+      collapsible
+    >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <MealPlanSection
           initialWeekStartDate={initialWeekStartDate}

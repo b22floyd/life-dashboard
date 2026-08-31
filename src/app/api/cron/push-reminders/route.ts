@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocalDateString } from "@/lib/date-utils";
+import { computeCleaningStatus, type CleaningFrequency, type CleaningTask } from "@/lib/cleaning-utils";
 import { computeContactStatus, type Contact, type ContactCategory } from "@/lib/contacts-utils";
 import type { HabitWithCompletions } from "@/lib/habit-utils";
 import { buildDailyReminderContent } from "@/lib/push-notification-content";
@@ -26,6 +27,14 @@ type RawContact = {
   cadence_days: number;
   created_at: string;
   contact_log: { contacted_at: string }[] | null;
+};
+
+type RawCleaningTask = {
+  id: string;
+  name: string;
+  frequency: CleaningFrequency;
+  created_at: string;
+  cleaning_task_completions: { completed_at: string }[] | null;
 };
 
 // Runs once daily (see vercel.json) at a fixed UTC time chosen to land in
@@ -67,7 +76,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const [subscriptionsRes, habitsRes, contactsRes] = await Promise.all([
+  const [subscriptionsRes, habitsRes, contactsRes, cleaningRes] = await Promise.all([
     supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", user.id),
     supabase
       .from("habits")
@@ -80,12 +89,19 @@ export async function GET(request: Request) {
          contact_log (contacted_at)`,
       )
       .eq("user_id", user.id),
+    supabase
+      .from("cleaning_tasks")
+      .select("id, name, frequency, created_at, cleaning_task_completions(completed_at)")
+      .eq("user_id", user.id),
   ]);
 
-  if (subscriptionsRes.error || habitsRes.error || contactsRes.error) {
+  if (subscriptionsRes.error || habitsRes.error || contactsRes.error || cleaningRes.error) {
     console.error(
       "Push reminder cron failed to load data:",
-      subscriptionsRes.error?.message ?? habitsRes.error?.message ?? contactsRes.error?.message,
+      subscriptionsRes.error?.message ??
+        habitsRes.error?.message ??
+        contactsRes.error?.message ??
+        cleaningRes.error?.message,
     );
     return NextResponse.json({ error: "Failed to load reminder data." }, { status: 500 });
   }
@@ -131,7 +147,28 @@ export async function GET(request: Request) {
   });
 
   const today = getLocalDateString();
-  const content = buildDailyReminderContent(habits, today, contacts);
+
+  const cleaningTasks = ((cleaningRes.data ?? []) as RawCleaningTask[]).map((row) => {
+    const completions = row.cleaning_task_completions ?? [];
+    const lastCompletedAt =
+      completions.length === 0
+        ? null
+        : completions.reduce(
+            (latest, c) =>
+              new Date(c.completed_at).getTime() > new Date(latest).getTime() ? c.completed_at : latest,
+            completions[0].completed_at,
+          );
+
+    const task: CleaningTask = {
+      id: row.id,
+      name: row.name,
+      frequency: row.frequency,
+      createdAt: row.created_at,
+    };
+    return computeCleaningStatus(task, lastCompletedAt, today);
+  });
+
+  const content = buildDailyReminderContent(habits, today, contacts, cleaningTasks);
   if (!content) {
     return NextResponse.json({ success: true, sent: 0, reason: "Nothing due today." });
   }

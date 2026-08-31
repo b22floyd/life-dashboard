@@ -21,8 +21,9 @@ export default function SettingsPage() {
           Notifications
         </h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Get a daily reminder if any habits are still outstanding or contacts are due for a
-          reach-out. Sent once a day at a fixed time — not tied to when you actually open the app.
+          Get a daily reminder if any habits are still outstanding, a cleaning task is due, or a
+          contact is due for a reach-out. Sent once a day at a fixed time — not tied to when you
+          actually open the app.
         </p>
         <div className="mt-3">
           <NotificationSettings />

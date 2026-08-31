@@ -1,10 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyReminderContent } from "./push-notification-content";
+import type { CleaningTaskWithStatus } from "./cleaning-utils";
 import type { ContactWithStatus } from "./contacts-utils";
 import type { HabitWithCompletions } from "./habit-utils";
 
 function habit(name: string, completedDates: string[]): HabitWithCompletions {
   return { id: name, name, position: 0, created_at: "2026-01-01T00:00:00Z", completedDates };
+}
+
+function cleaningTask(name: string, isDue: boolean): CleaningTaskWithStatus {
+  return {
+    id: name,
+    name,
+    frequency: "weekly",
+    createdAt: "2026-01-01T00:00:00Z",
+    lastCompletedAt: null,
+    isDue,
+    isHidden: false,
+    daysUntilDue: isDue ? null : 3,
+    nextDueAt: "2026-08-16T00:00:00Z",
+  };
 }
 
 function contact(name: string, isDue: boolean): ContactWithStatus {
@@ -31,10 +46,11 @@ describe("buildDailyReminderContent", () => {
   it("returns null when everything is done and nobody is due", () => {
     const habits = [habit("Meditate", ["2026-08-15"])];
     const contacts = [contact("Sarah", false)];
-    expect(buildDailyReminderContent(habits, "2026-08-15", contacts)).toBeNull();
+    const cleaningTasks = [cleaningTask("Vacuum", false)];
+    expect(buildDailyReminderContent(habits, "2026-08-15", contacts, cleaningTasks)).toBeNull();
   });
 
-  it("returns null for entirely empty habits and contacts", () => {
+  it("returns null for entirely empty habits, contacts, and cleaning tasks", () => {
     expect(buildDailyReminderContent([], "2026-08-15", [])).toBeNull();
   });
 
@@ -62,6 +78,26 @@ describe("buildDailyReminderContent", () => {
     const contacts = [contact("Sarah", true), contact("Mike", true)];
     const result = buildDailyReminderContent(habits, "2026-08-15", contacts);
     expect(result?.body).toBe("1 habit due today · 2 contacts to reach out to");
+  });
+
+  it("counts only due cleaning tasks, not ones that aren't due yet", () => {
+    const cleaningTasks = [cleaningTask("Vacuum", true), cleaningTask("Dust", false)];
+    const result = buildDailyReminderContent([], "2026-08-15", [], cleaningTasks);
+    expect(result?.body).toBe("1 cleaning task due");
+  });
+
+  it("pluralizes correctly for multiple due cleaning tasks", () => {
+    const cleaningTasks = [cleaningTask("Vacuum", true), cleaningTask("Mop", true)];
+    const result = buildDailyReminderContent([], "2026-08-15", [], cleaningTasks);
+    expect(result?.body).toBe("2 cleaning tasks due");
+  });
+
+  it("combines habits, cleaning tasks, and contacts in a fixed order when all three are present", () => {
+    const habits = [habit("Meditate", [])];
+    const cleaningTasks = [cleaningTask("Vacuum", true)];
+    const contacts = [contact("Sarah", true)];
+    const result = buildDailyReminderContent(habits, "2026-08-15", contacts, cleaningTasks);
+    expect(result?.body).toBe("1 habit due today · 1 cleaning task due · 1 contact to reach out to");
   });
 
   it("always uses the same title", () => {

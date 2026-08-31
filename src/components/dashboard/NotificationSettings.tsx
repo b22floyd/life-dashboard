@@ -106,8 +106,13 @@ export function NotificationSettings() {
 
   return (
     <div>
-      {error && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
 
+      <div role="status">
       {status === "checking" && (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">Checking notification status…</p>
       )}
@@ -157,6 +162,7 @@ export function NotificationSettings() {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -96,7 +96,11 @@ export function DataRestorePanel() {
           }}
           className="text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-100 dark:file:text-zinc-900 dark:hover:file:bg-zinc-300"
         />
-        {fileError && <p className="text-sm text-red-600 dark:text-red-400">{fileError}</p>}
+        {fileError && (
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {fileError}
+          </p>
+        )}
       </div>
 
       {backup && (
@@ -127,30 +131,30 @@ export function DataRestorePanel() {
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{summary}</p>
                     </div>
 
-                    {status === "idle" && (
-                      <button
-                        type="button"
-                        disabled={!parsesCleanly}
-                        onClick={() => askConfirm(section)}
-                        className="shrink-0 rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                      >
-                        Restore
-                      </button>
-                    )}
-                    {status === "restoring" && (
-                      <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">
-                        Restoring…
-                      </span>
-                    )}
-                    {status === "done" && (
-                      <span className="shrink-0 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                        Restored
-                      </span>
-                    )}
+                    <div role="status" className="shrink-0">
+                      {status === "idle" && (
+                        <button
+                          type="button"
+                          disabled={!parsesCleanly}
+                          onClick={() => askConfirm(section)}
+                          className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        >
+                          Restore
+                        </button>
+                      )}
+                      {status === "restoring" && (
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">Restoring…</span>
+                      )}
+                      {status === "done" && (
+                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          Restored
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {status === "confirming" && (
-                    <div className="mt-2 rounded-lg bg-amber-50 p-2 dark:bg-amber-900/20">
+                    <div role="alert" className="mt-2 rounded-lg bg-amber-50 p-2 dark:bg-amber-900/20">
                       <p className="text-xs text-zinc-700 dark:text-zinc-300">
                         {`This replaces your current ${SECTION_LABELS[section]} data with what's in the backup. This can't be undone unless you have another backup to restore from.`}
                       </p>
@@ -177,7 +181,9 @@ export function DataRestorePanel() {
                   )}
 
                   {status === "error" && (
-                    <p className="mt-2 text-xs text-red-600 dark:text-red-400">{messages[section]}</p>
+                    <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">
+                      {messages[section]}
+                    </p>
                   )}
                   {status === "done" && messages[section] && caveat && (
                     <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{caveat}</p>

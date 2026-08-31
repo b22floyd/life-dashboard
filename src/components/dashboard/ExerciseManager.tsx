@@ -96,7 +96,7 @@ export function ExerciseManager({ sessions }: { sessions: WorkoutSession[] }) {
 
       {expanded && (
         <div className="mt-3 flex flex-col gap-4">
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           {result && <p className="text-sm text-emerald-600 dark:text-emerald-400">{result}</p>}
 
           {usage.length === 0 ? (

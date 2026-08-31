@@ -185,7 +185,7 @@ export function TasksCardBody({
             ))}
           </ul>
         )}
-        {saveError && <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>}
+        {saveError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{saveError}</p>}
         <div className="flex gap-2">
           <button
             type="button"
@@ -232,7 +232,7 @@ export function TasksCardBody({
         ))}
       </div>
 
-      {taskError && <p className="text-sm text-red-600 dark:text-red-400">{taskError}</p>}
+      {taskError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{taskError}</p>}
       {tasks === null ? (
         <SectionLoadError message="Couldn't load tasks from Todoist." />
       ) : visibleTasks.length === 0 ? (

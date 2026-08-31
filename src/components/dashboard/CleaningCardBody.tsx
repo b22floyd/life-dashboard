@@ -202,9 +202,9 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
       </form>
 
       {addState?.error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
       )}
-      {actionError && <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
+      {actionError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
       {!mounted ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">Loading…</p>
@@ -243,7 +243,7 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
                       if (e.key === "Escape") setEditingId(null);
                     }}
                     autoFocus
-                    className="min-w-0 flex-1 rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-sm text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+                    className="min-w-0 flex-1 rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
                   />
                 ) : (
                   <button

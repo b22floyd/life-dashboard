@@ -156,7 +156,7 @@ export function WeightTrackerSection({
             onChange={(e) => setTargetDateInput(e.target.value)}
             className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
           />
-          {goalError && <p className="text-xs text-red-600 dark:text-red-400">{goalError}</p>}
+          {goalError && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{goalError}</p>}
           <button
             type="submit"
             disabled={isSavingGoal}
@@ -192,7 +192,7 @@ export function WeightTrackerSection({
             className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
           />
           {addState?.error && (
-            <p className="text-xs text-red-600 dark:text-red-400">{addState.error}</p>
+            <p role="alert" className="text-xs text-red-600 dark:text-red-400">{addState.error}</p>
           )}
           <button
             type="submit"
@@ -275,7 +275,7 @@ export function WeightTrackerSection({
         </button>
 
         {deleteError && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+          <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
         )}
 
         {historyExpanded && (

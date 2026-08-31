@@ -47,7 +47,7 @@ export async function HealthCard({
       }
     >
       {error && (
-        <div className="mb-3 text-sm text-red-600 dark:text-red-400">
+        <div role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">
           <p>{WHOOP_ERROR_MESSAGES[error] ?? "Something went wrong connecting Whoop."}</p>
           {errorDetail && <p className="mt-1 font-mono text-xs opacity-80">{errorDetail}</p>}
         </div>

@@ -179,7 +179,7 @@ export function GroceryListSection({
         </form>
       </div>
       {addStapleState?.error && (
-        <p className="mb-2 text-sm text-red-600 dark:text-red-400">{addStapleState.error}</p>
+        <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">{addStapleState.error}</p>
       )}
 
       <form
@@ -206,9 +206,9 @@ export function GroceryListSection({
       </form>
 
       {addItemState?.error && (
-        <p className="mb-2 text-sm text-red-600 dark:text-red-400">{addItemState.error}</p>
+        <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">{addItemState.error}</p>
       )}
-      {actionError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{actionError}</p>}
+      {actionError && <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
       {itemsLoadFailed ? (
         <SectionLoadError message="Couldn't load your grocery list right now." />

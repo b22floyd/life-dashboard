@@ -139,7 +139,7 @@ export function ContactsCardBody({ contacts }: { contacts: ContactWithStatus[] }
         ))}
       </div>
 
-      {actionError && <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
+      {actionError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
       {localContacts.length === 0 ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
@@ -293,7 +293,7 @@ export function ContactsCardBody({ contacts }: { contacts: ContactWithStatus[] }
             className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
           />
           {addState?.error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
           )}
           <div className="flex justify-end gap-2">
             <button

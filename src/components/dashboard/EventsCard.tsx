@@ -41,7 +41,7 @@ export async function EventsCard({
       }
     >
       {error && (
-        <div className="mb-3 text-sm text-red-600 dark:text-red-400">
+        <div role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">
           <p>{GOOGLE_ERROR_MESSAGES[error] ?? "Something went wrong connecting Google Calendar."}</p>
           {errorDetail && <p className="mt-1 font-mono text-xs opacity-80">{errorDetail}</p>}
         </div>

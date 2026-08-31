@@ -247,10 +247,10 @@ export function MealPlanSection({
         </div>
       )}
 
-      {saveError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
-      {copyError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{copyError}</p>}
+      {saveError && <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
+      {copyError && <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">{copyError}</p>}
       {groceryAddError && (
-        <p className="mb-2 text-sm text-red-600 dark:text-red-400">{groceryAddError}</p>
+        <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">{groceryAddError}</p>
       )}
 
       <div className="flex max-h-96 flex-col gap-3 overflow-y-auto pr-1">
@@ -348,7 +348,7 @@ export function MealPlanSection({
                         ) : (
                           <>
                             {parseError && (
-                              <p className="mb-1.5 text-xs text-red-600 dark:text-red-400">
+                              <p role="alert" className="mb-1.5 text-xs text-red-600 dark:text-red-400">
                                 {parseError}
                               </p>
                             )}

@@ -7,7 +7,10 @@ import { RetryButton } from "./RetryButton";
 // through to a misleading "nothing here" empty state.
 export function SectionLoadError({ message }: { message: string }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg bg-red-50 px-3 py-2.5 dark:bg-red-950/30">
+    <div
+      role="alert"
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg bg-red-50 px-3 py-2.5 dark:bg-red-950/30"
+    >
       <p className="text-sm text-red-600 dark:text-red-400">{message}</p>
       <RetryButton />
     </div>

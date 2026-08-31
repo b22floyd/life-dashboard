@@ -58,7 +58,7 @@ export function AnnualGoalsCardBody({ goals }: { goals: AnnualGoal[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {actionError && <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
+      {actionError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
       {localGoals.length === 0 && !showAddForm ? (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
@@ -110,7 +110,7 @@ export function AnnualGoalsCardBody({ goals }: { goals: AnnualGoal[] }) {
             ))}
           </div>
           {addState?.error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
           )}
           <div className="flex justify-end gap-2">
             <button

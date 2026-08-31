@@ -148,14 +148,14 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
             placeholder="Goal title"
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm font-medium text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm font-medium text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
           />
           <textarea
             value={editDescription}
             onChange={(e) => setEditDescription(e.target.value)}
             rows={2}
             placeholder="Short description"
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-700 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
           />
           <div className="grid grid-cols-2 gap-2">
             {QUARTERS.map((quarter) => (
@@ -169,12 +169,12 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
                     setEditCheckpoints((current) => ({ ...current, [quarter]: e.target.value }))
                   }
                   rows={2}
-                  className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+                  className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
                 />
               </div>
             ))}
           </div>
-          {saveError && <p className="text-xs text-red-600 dark:text-red-400">{saveError}</p>}
+          {saveError && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{saveError}</p>}
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -258,7 +258,7 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
           {detailsExpanded && (
             <>
               {toggleError && (
-                <p className="text-xs text-red-600 dark:text-red-400">{toggleError}</p>
+                <p role="alert" className="text-xs text-red-600 dark:text-red-400">{toggleError}</p>
               )}
 
               <div className="flex flex-col gap-1.5">
@@ -323,7 +323,7 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
                       </button>
                     </div>
                     {noteError && (
-                      <p className="text-xs text-red-600 dark:text-red-400">{noteError}</p>
+                      <p role="alert" className="text-xs text-red-600 dark:text-red-400">{noteError}</p>
                     )}
                     {localGoal.notes.length === 0 ? (
                       <p className="text-xs text-zinc-400 dark:text-zinc-500">

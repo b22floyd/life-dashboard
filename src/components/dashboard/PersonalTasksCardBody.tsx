@@ -174,10 +174,10 @@ export function PersonalTasksCardBody({ tasks }: { tasks: PersonalTask[] | null 
       </form>
 
       {addState?.error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">{addState.error}</p>
       )}
-      {taskError && <p className="text-sm text-red-600 dark:text-red-400">{taskError}</p>}
-      {dueDateError && <p className="text-sm text-red-600 dark:text-red-400">{dueDateError}</p>}
+      {taskError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{taskError}</p>}
+      {dueDateError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{dueDateError}</p>}
 
       <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
         {TABS.map((key) => (

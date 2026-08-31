@@ -80,15 +80,22 @@ export function WidgetCard({
         <div className="flex min-w-0 items-center gap-2">
           {sortable && <DragHandle title={title} />}
           {canCollapse ? (
-            <button
-              type="button"
-              onClick={() => setSectionCollapsed(id!, !collapsed)}
-              aria-expanded={!collapsed}
-              className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              <span aria-hidden>{collapsed ? "▸" : "▾"}</span>
-              {title}
-            </button>
+            // The disclosure button lives inside the heading (rather than
+            // being the heading) so a screen-reader user navigating by
+            // heading still lands on this section's title even when it's
+            // collapsible — the h2/h3 outline shouldn't depend on whether a
+            // given card happens to support collapsing.
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <button
+                type="button"
+                onClick={() => setSectionCollapsed(id!, !collapsed)}
+                aria-expanded={!collapsed}
+                className="flex items-center gap-1.5 hover:text-zinc-700 dark:hover:text-zinc-200"
+              >
+                <span aria-hidden>{collapsed ? "▸" : "▾"}</span>
+                {title}
+              </button>
+            </h2>
           ) : (
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               {title}

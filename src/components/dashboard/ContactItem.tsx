@@ -117,12 +117,12 @@ export function ContactItem({
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               placeholder="Name"
-              className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+              className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
             />
             <select
               value={editCategory}
               onChange={(e) => setEditCategory(e.target.value as ContactCategory)}
-              className="shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+              className="shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
             >
               {CONTACT_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -141,7 +141,7 @@ export function ContactItem({
               min={1}
               value={editCadenceDays}
               onChange={(e) => setEditCadenceDays(e.target.value)}
-              className="w-20 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+              className="w-20 rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
             />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">days</span>
           </div>
@@ -154,7 +154,7 @@ export function ContactItem({
                 type="date"
                 value={editBirthday}
                 onChange={(e) => setEditBirthday(e.target.value)}
-                className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+                className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -165,7 +165,7 @@ export function ContactItem({
                 type="date"
                 value={editImportantDate}
                 onChange={(e) => setEditImportantDate(e.target.value)}
-                className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+                className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </div>
           </div>
@@ -174,23 +174,23 @@ export function ContactItem({
             value={editImportantDateLabel}
             onChange={(e) => setEditImportantDateLabel(e.target.value)}
             placeholder="Important date label (e.g. Anniversary)"
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+            className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
           />
           <textarea
             value={editNotes}
             onChange={(e) => setEditNotes(e.target.value)}
             rows={2}
             placeholder="Notes"
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+            className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
           />
           <textarea
             value={editGiftIdeas}
             onChange={(e) => setEditGiftIdeas(e.target.value)}
             rows={2}
             placeholder="Gift ideas"
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+            className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
           />
-          {saveError && <p className="text-xs text-red-600 dark:text-red-400">{saveError}</p>}
+          {saveError && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{saveError}</p>}
           <div className="flex justify-end gap-2">
             <button
               type="button"

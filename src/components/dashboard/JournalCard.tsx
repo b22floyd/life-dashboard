@@ -119,7 +119,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] | null }) {
           className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
         />
         {state?.error && (
-          <p className="text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
             {state.error}
           </p>
         )}
@@ -162,7 +162,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] | null }) {
         </button>
       </div>
       {transcribeState && "error" in transcribeState && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{transcribeState.error}</p>
+        <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{transcribeState.error}</p>
       )}
 
       <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-800">
@@ -177,7 +177,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] | null }) {
         </button>
 
         {deleteError && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+          <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
         )}
 
         {entriesExpanded && (

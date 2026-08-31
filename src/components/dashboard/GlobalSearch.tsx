@@ -34,6 +34,7 @@ export function GlobalSearch({ items }: { items: SearchItem[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const results = useMemo(() => searchItems(items, query), [items, query]);
   const groups = useMemo(() => groupByCategory(results), [results]);
@@ -46,6 +47,18 @@ export function GlobalSearch({ items }: { items: SearchItem[] }) {
 
   function close() {
     setIsOpen(false);
+  }
+
+  // The dialog's only focusable elements are the search input and the
+  // dynamic list of result buttons, so a plain DOM query at close-time is
+  // enough to find them — no need for a dedicated focus-trap library.
+  function getFocusableElements(): HTMLElement[] {
+    if (!containerRef.current) return [];
+    return Array.from(
+      containerRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
   }
 
   function selectResult(item: SearchItem) {
@@ -69,7 +82,15 @@ export function GlobalSearch({ items }: { items: SearchItem[] }) {
   }, []);
 
   useEffect(() => {
-    if (isOpen) inputRef.current?.focus();
+    if (!isOpen) return;
+    inputRef.current?.focus();
+    // Restore focus to whatever opened the dialog (the header button, or
+    // wherever Cmd/Ctrl+K was pressed from) once it closes — without this,
+    // closing drops focus to <body>, forcing a keyboard user to
+    // re-navigate the page from scratch. Captured into a local up front
+    // since the ref itself won't change out from under a static button.
+    const trigger = triggerRef.current;
+    return () => trigger?.focus();
   }, [isOpen]);
 
   // Reset keyboard selection back to the top result whenever the visible
@@ -102,12 +123,31 @@ export function GlobalSearch({ items }: { items: SearchItem[] }) {
     if (e.key === "Enter" && results[activeIndex]) {
       e.preventDefault();
       selectResult(results[activeIndex]);
+      return;
+    }
+    if (e.key === "Tab") {
+      // A minimal focus trap: without this, Tab-ing past the last result
+      // (or Shift+Tab-ing past the input) would move focus into the
+      // dashboard behind the modal overlay, letting a keyboard user
+      // interact with content they can't see.
+      const focusable = getFocusableElements();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   }
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={open}
         className="flex items-center gap-1.5 rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -131,6 +171,7 @@ export function GlobalSearch({ items }: { items: SearchItem[] }) {
             role="dialog"
             aria-modal="true"
             aria-label="Search the dashboard"
+            onKeyDown={handleKeyDown}
             className="flex max-h-[70vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-zinc-900"
           >
             <input
@@ -138,9 +179,8 @@ export function GlobalSearch({ items }: { items: SearchItem[] }) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
               placeholder="Search tasks, contacts, goals, journal…"
-              className="w-full border-b border-zinc-200 px-4 py-3 text-sm text-zinc-800 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+              className="w-full border-b border-zinc-200 px-4 py-3 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             />
 
             <div className="flex-1 overflow-y-auto p-2">

@@ -640,6 +640,19 @@ alter table public.personal_tasks
 
 Verified with a Playwright preview (synthetic tasks: overdue, due today, due tomorrow, due next week, and one with no date): each landed in the correct tab; setting a due date on the previously-undated task via the inline "+ Add date" control immediately moved it into the Today tab, with no page reload, confirming the optimistic re-bucketing works as intended.
 
+### Security Headers
+
+Every response now carries a baseline set of security headers, added via `next.config.ts`'s `headers()` — no proxy/middleware changes needed, since these apply the same way to every path regardless of auth state.
+
+- **Content-Security-Policy** — `default-src 'self'` plus explicit `script-src`/`style-src`/`img-src`/`font-src`/`connect-src` all scoped to `'self'` (this app loads zero third-party client-side scripts, stylesheets, or images — every integration it has, Google/Whoop/Todoist/Anthropic/OpenAI/the weather API, is called server-side only), `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, and `frame-ancestors 'none'` (blocks this app from ever being framed by another site — the actual clickjacking defense). Deliberately **not** nonce-based: a nonce requires a proxy to mint one per-request and forces every page into dynamic rendering, which would undo the static optimization this app already relies on (`/login`, `/privacy`, `/offline`, the icon routes) for no real benefit here, and would also break every inline `style={{...}}` this codebase already uses throughout (charts, the splash screen, the generated icons) unless each were individually rewritten. `script-src`/`style-src` therefore keep `'unsafe-inline'` — this is exactly the "without nonces" baseline Next's own CSP guide documents, still blocking any externally injected script or stylesheet, just without nonces' extra layer against inline injection. `'unsafe-eval'` is added to `script-src` in development only (React dev-mode needs it for error reconstruction; production never uses `eval`).
+- **X-Frame-Options: DENY** — belt-and-suspenders alongside `frame-ancestors` for older browsers that don't support that CSP directive.
+- **X-Content-Type-Options: nosniff** — stops a browser from guessing a different content type than what's declared, relevant for the Journal card's user-uploaded audio files.
+- **Referrer-Policy: strict-origin-when-cross-origin** — a sane default that doesn't leak this app's full URLs (which could contain no secrets today, but shouldn't be relied on to stay that way) to third-party sites.
+- **Permissions-Policy: `camera=(), microphone=(), geolocation=(self)`** — geolocation stays enabled for WeatherWidget's "use my location" button; nothing else in this app touches a sensitive browser API (the Journal card's voice memo is a plain file upload via `<input type="file">`, never `getUserMedia`).
+- **Strict-Transport-Security** (`max-age=63072000; includeSubDomains; preload`) — safe unconditionally since Vercel always serves this app over HTTPS.
+
+Verified by starting a production build and confirming with `curl -D -` that every header above is present with the intended value on both a static page (`/login`) and the app generally, then loading `/login`, `/privacy`, and `/offline` in a real headless browser and confirming zero console errors or CSP violation reports — including that the service worker still registers and reaches `activated` state under the new policy (its own script and the routes it precaches are all same-origin, so nothing about the CSP affects it). Full authenticated-dashboard verification (confirming none of habits/workouts/charts/search trip a CSP violation) couldn't be done in this environment (no live Supabase project configured here), so if anything unexpected shows up in the browser console on a real deployment, `next.config.ts`'s `cspHeader` is the one place to loosen.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

@@ -42,12 +42,12 @@ export async function Header() {
               </span>
               {/* Desktop-only — with the email and this both showing, the
                   mobile header has too many competing elements; the same
-                  export is still reachable directly at /api/export. */}
+                  page is still reachable directly at /data. */}
               <a
-                href="/api/export"
+                href="/data"
                 className="hidden rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 sm:inline-block dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                Export My Data
+                Data & Backups
               </a>
               <form action={signOut}>
                 <button

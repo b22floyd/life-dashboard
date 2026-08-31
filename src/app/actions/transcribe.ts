@@ -1,8 +1,15 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // Whisper's own file size cap.
+
+// Generous enough for real journal use (nobody transcribes 20 voice memos
+// in an hour), tight enough to cap the cost of a retry loop or a
+// double-clicked button hammering a paid API.
+const RATE_LIMIT = 20;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 // Whisper's documented formats, plus aac (commonly produced by non-Apple
 // recorders) — OpenAI's own error message is surfaced if a format still
@@ -47,6 +54,13 @@ export async function transcribeAudio(
   } = await supabase.auth.getUser();
   if (!user) {
     return { error: "You must be signed in to transcribe audio." };
+  }
+
+  const rateLimit = await checkRateLimit(supabase, user.id, "transcribeAudio", RATE_LIMIT, RATE_LIMIT_WINDOW_MS);
+  if (!rateLimit.allowed) {
+    return {
+      error: `Too many transcription requests — try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
   }
 
   const extension = getExtension(file.name);

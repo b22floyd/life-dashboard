@@ -5,6 +5,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { getMealPlanForWeek } from "@/lib/meal-plan";
 import {
   MEAL_MODES,
@@ -16,6 +17,12 @@ import {
 } from "@/lib/meal-plan-utils";
 
 const anthropic = new Anthropic();
+
+// Generous enough for real use (nobody parses ingredients for 20 meals in
+// an hour), tight enough to cap the cost of a retry loop or a
+// double-clicked button hammering a paid API.
+const PARSE_INGREDIENTS_RATE_LIMIT = 20;
+const PARSE_INGREDIENTS_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 export type MealPlanActionResult = { success: true } | { error: string };
 export type MealPlanFetchResult = { entries: MealPlanEntry[] } | { error: string };
@@ -165,6 +172,19 @@ export async function parseMealIngredients(
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return { error: "Ingredient parsing isn't configured (missing ANTHROPIC_API_KEY)." };
+  }
+
+  const rateLimit = await checkRateLimit(
+    supabase,
+    user.id,
+    "parseMealIngredients",
+    PARSE_INGREDIENTS_RATE_LIMIT,
+    PARSE_INGREDIENTS_RATE_LIMIT_WINDOW_MS,
+  );
+  if (!rateLimit.allowed) {
+    return {
+      error: `Too many parse requests — try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
   }
 
   try {

@@ -6,9 +6,16 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { isValidDateString } from "@/lib/date-utils";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { WORKOUT_CATEGORIES, type WorkoutCategory } from "@/lib/workout-utils";
 
 const anthropic = new Anthropic();
+
+// Generous enough for real use (nobody logs 20 workouts in an hour), tight
+// enough to cap the cost of a retry loop or a double-clicked button
+// hammering a paid API.
+const PARSE_RATE_LIMIT = 20;
+const PARSE_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 const ParsedSetSchema = z.object({
   weight: z
@@ -52,6 +59,13 @@ export async function parseWorkoutText(
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return { error: "Workout parsing isn't configured (missing ANTHROPIC_API_KEY)." };
+  }
+
+  const rateLimit = await checkRateLimit(supabase, user.id, "parseWorkoutText", PARSE_RATE_LIMIT, PARSE_RATE_LIMIT_WINDOW_MS);
+  if (!rateLimit.allowed) {
+    return {
+      error: `Too many parse requests — try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
   }
 
   try {

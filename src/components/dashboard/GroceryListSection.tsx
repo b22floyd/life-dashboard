@@ -227,8 +227,8 @@ export function GroceryListSection({
               <span
                 className={
                   item.checked
-                    ? "text-sm text-zinc-400 line-through dark:text-zinc-500"
-                    : "text-sm text-zinc-700 dark:text-zinc-300"
+                    ? "min-w-0 flex-1 text-sm break-words text-zinc-400 line-through dark:text-zinc-500"
+                    : "min-w-0 flex-1 text-sm break-words text-zinc-700 dark:text-zinc-300"
                 }
               >
                 {item.content}

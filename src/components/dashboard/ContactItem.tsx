@@ -263,10 +263,12 @@ export function ContactItem({
           </p>
 
           {contact.notes && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Notes: {contact.notes}</p>
+            <p className="text-xs break-words text-zinc-500 dark:text-zinc-400">
+              Notes: {contact.notes}
+            </p>
           )}
           {contact.giftIdeas && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs break-words text-zinc-500 dark:text-zinc-400">
               Gift ideas: {contact.giftIdeas}
             </p>
           )}

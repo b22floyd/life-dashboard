@@ -201,7 +201,7 @@ export function GoalItem({ goal, onDelete }: { goal: AnnualGoal; onDelete: () =>
                 {localGoal.title}
               </h3>
               {localGoal.description && (
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="mt-0.5 text-sm break-words text-zinc-500 dark:text-zinc-400">
                   {localGoal.description}
                 </p>
               )}

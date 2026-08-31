@@ -4,7 +4,19 @@
 // unregistered). Bump CACHE_NAME whenever the caching strategy below
 // changes so the next activate() clears out anything cached under the old
 // strategy instead of it lingering indefinitely.
-const CACHE_NAME = "life-dashboard-v1";
+//
+// v2: split cache-first into two tiers (see isImmutableStaticAsset vs.
+// isRevalidatableAsset below) — v1 treated the icon/manifest routes as
+// cache-first-forever on the assumption that "the icon/manifest routes only
+// change when their own source does, which bumps CACHE_NAME along with any
+// other change to this file" — but that's only true if a developer *also*
+// edits this file. Regenerating an icon (app-icon.tsx/manifest.ts) doesn't
+// touch sw.js's own bytes at all, so the browser's byte-for-byte SW update
+// check never fires, the old SW keeps running, and it serves the old icon
+// from cache forever with no error and no path back to fresh content. This
+// bump both clears out any icon already stuck in a v1 cache, and the
+// revalidate-in-background strategy below means it can't happen again.
+const CACHE_NAME = "life-dashboard-v2";
 const OFFLINE_URL = "/offline";
 
 // Fetched and cached individually (not via cache.addAll, which fails the
@@ -45,9 +57,19 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-function isCacheableStaticAsset(url) {
+// Next fingerprints every /_next/static/ filename per build, so a given
+// URL's content genuinely never changes — safe to cache-first forever with
+// no revalidation.
+function isImmutableStaticAsset(url) {
+  return url.pathname.startsWith("/_next/static/");
+}
+
+// These have stable URLs but *can* change content (a redesigned icon, an
+// edited manifest) without this file's own bytes changing, so a pure
+// cache-first strategy here can get stuck serving stale content
+// indefinitely — see the v2 note on CACHE_NAME above.
+function isRevalidatableAsset(url) {
   return (
-    url.pathname.startsWith("/_next/static/") ||
     url.pathname === "/manifest.webmanifest" ||
     url.pathname === "/icon" ||
     url.pathname === "/apple-icon" ||
@@ -88,12 +110,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (isCacheableStaticAsset(url)) {
-    // Cache-first: safe here specifically because Next fingerprints every
-    // /_next/static/ filename per build (a given URL's content never
-    // changes), and the icon/manifest routes only change when their own
-    // source does, which bumps CACHE_NAME above along with any other
-    // change to this file.
+  if (isImmutableStaticAsset(url)) {
+    // Pure cache-first — there's never a "fresher" version of a given
+    // content-hashed URL to revalidate against.
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
@@ -106,6 +125,35 @@ self.addEventListener("fetch", (event) => {
         });
       }),
     );
+    return;
+  }
+
+  if (isRevalidatableAsset(url)) {
+    // Stale-while-revalidate: respond from cache immediately if present
+    // (so these still work offline and load instantly), but always also
+    // fetch a fresh copy in the background and update the cache for next
+    // time — the self-healing this class of route needs, since nothing
+    // else here ever tells the browser a new version of *this specific
+    // file* is available the way an sw.js byte change does for the SW
+    // itself.
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match(request).then((cached) => {
+          const revalidate = fetch(request)
+            .then((response) => {
+              if (response.ok) cache.put(request, response.clone());
+              return response;
+            })
+            .catch(() => cached || Response.error());
+          if (cached) {
+            event.waitUntil(revalidate);
+            return cached;
+          }
+          return revalidate;
+        }),
+      ),
+    );
+    return;
   }
 
   // Everything else (API routes, RSC data fetches for client-side

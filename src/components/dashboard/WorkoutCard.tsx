@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteWorkoutSession,
@@ -9,7 +9,14 @@ import {
   type ParseWorkoutState,
 } from "@/app/actions/workout";
 import { getLocalDateString } from "@/lib/date-utils";
-import { WORKOUT_CATEGORIES, type WorkoutCategory, type WorkoutSession } from "@/lib/workout-utils";
+import {
+  WORKOUT_CATEGORIES,
+  getExerciseNames,
+  type WorkoutCategory,
+  type WorkoutSession,
+} from "@/lib/workout-utils";
+import { ExerciseManager } from "./ExerciseManager";
+import { ExerciseNamePicker } from "./ExerciseNamePicker";
 import { SectionLoadError } from "./SectionLoadError";
 import { WidgetCard } from "./WidgetCard";
 import { ProgressChart } from "./ProgressChart";
@@ -67,6 +74,10 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
     setHandledSessions(sessions);
     setLocalSessions(safeSessions);
   }
+
+  // Every exercise already in history feeds the builder's dropdown, so the
+  // same lift doesn't drift into several spellings just from retyping it.
+  const knownExerciseNames = useMemo(() => getExerciseNames(localSessions), [localSessions]);
 
   function handleDeleteSession(sessionId: string) {
     setDeleteError(null);
@@ -298,12 +309,10 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
                 className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"
               >
                 <div className="mb-2 flex items-center gap-2">
-                  <input
-                    type="text"
+                  <ExerciseNamePicker
                     value={exercise.name}
-                    onChange={(e) => updateExercise(exerciseIndex, { name: e.target.value })}
-                    placeholder="Exercise name"
-                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
+                    knownNames={knownExerciseNames}
+                    onChange={(name) => updateExercise(exerciseIndex, { name })}
                   />
                   <button
                     type="button"
@@ -458,6 +467,8 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
               </div>
             )}
           </div>
+
+          <ExerciseManager sessions={localSessions} />
         </div>
       </div>
     </WidgetCard>

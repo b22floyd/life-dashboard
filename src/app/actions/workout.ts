@@ -178,6 +178,58 @@ export async function saveWorkoutSession(
   return { success: true };
 }
 
+export type MergeExercisesResult = { success: true; updatedCount: number } | { error: string };
+
+// Renames every matching session_exercises row to a single canonical name.
+// Because exercise_name is free text that both the progress chart and the
+// history list read directly, renaming *is* the merge — the historical sets
+// stay attached to their sessions and simply start reporting under one name.
+export async function mergeExercises(
+  names: string[],
+  canonicalName: string,
+): Promise<MergeExercisesResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You must be signed in to merge exercises." };
+  }
+
+  const canonical = canonicalName.trim();
+  if (!canonical) {
+    return { error: "Enter a name to merge into." };
+  }
+
+  // The names arrive as the exact strings stored in the database (see
+  // getExerciseUsage), so an exact-match .in() is what actually catches
+  // every variant — including ones differing only by case or whitespace.
+  // Dropping the canonical name itself would be wrong: a row already
+  // spelled that way needs no change, but leaving it in keeps the count
+  // honest and costs nothing.
+  const targets = names.filter((name) => name.trim());
+  if (targets.length === 0) {
+    return { error: "Select at least one exercise to merge." };
+  }
+
+  // Scoping is enforced by RLS — the "Users can update their own session
+  // exercises" policy joins back to workout_sessions and checks user_id —
+  // the same way inserts here rely on their with-check policy. There's no
+  // user_id column on session_exercises to filter on directly.
+  const { data, error } = await supabase
+    .from("session_exercises")
+    .update({ exercise_name: canonical })
+    .in("exercise_name", targets)
+    .select("id");
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { success: true, updatedCount: data?.length ?? 0 };
+}
+
 export type DeleteSessionResult = { success: true } | { error: string };
 
 export async function deleteWorkoutSession(sessionId: string): Promise<DeleteSessionResult> {

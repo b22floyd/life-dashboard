@@ -39,6 +39,109 @@ export function getExerciseNames(sessions: WorkoutSession[]): string[] {
   return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
 }
 
+// Distinct exercise names exactly as stored, with how much history each one
+// carries. Unlike getExerciseNames above (which folds case variants together
+// for display), this keys on the exact trimmed string — "Bench Press" and
+// "bench press" are genuinely separate rows in the database, and the merge
+// UI needs to show them as separate, mergeable entries.
+export type ExerciseUsage = { name: string; sessionCount: number; setCount: number };
+
+export function getExerciseUsage(sessions: WorkoutSession[]): ExerciseUsage[] {
+  const usage = new Map<string, ExerciseUsage>();
+
+  for (const session of sessions) {
+    const countedThisSession = new Set<string>();
+    for (const exercise of session.exercises) {
+      // Deliberately the raw stored string, not a trimmed copy: merging works
+      // by matching exercise_name exactly, so a row saved as "Bench Press "
+      // has to stay distinguishable from "Bench Press" here or the update
+      // would silently skip it. Whitespace-only names are still ignored.
+      const name = exercise.exercise_name;
+      if (!name.trim()) continue;
+
+      const entry = usage.get(name) ?? { name, sessionCount: 0, setCount: 0 };
+      entry.setCount += exercise.sets.length;
+      // A session that lists the same exercise twice still counts once.
+      if (!countedThisSession.has(name)) {
+        countedThisSession.add(name);
+        entry.sessionCount += 1;
+      }
+      usage.set(name, entry);
+    }
+  }
+
+  return Array.from(usage.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Equipment shorthand that routinely gets typed both ways. Only used to
+// *suggest* merges — nothing is ever merged without confirmation.
+const EXERCISE_ABBREVIATIONS: Record<string, string> = {
+  bb: "barbell",
+  db: "dumbbell",
+  kb: "kettlebell",
+  ohp: "overhead press",
+  rdl: "romanian deadlift",
+  sldl: "stiff leg deadlift",
+  bw: "bodyweight",
+  ez: "ezbar",
+};
+
+// Converges the common gym plurals: "presses"/"press", "curls"/"curl",
+// "raises"/"raise" all reduce to the same stem, without mangling words that
+// legitimately end in "ss".
+function singularize(word: string): string {
+  if (word.endsWith("es")) {
+    const stem = word.slice(0, -2);
+    if (stem.endsWith("ss")) return stem;
+  }
+  if (word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+  return word;
+}
+
+// A loose key for spotting the same exercise typed differently: case,
+// punctuation/hyphens, extra whitespace, equipment shorthand, plurals, and
+// word order are all flattened. Word order is included so "Incline Bench
+// Press" and "Bench Press Incline" match, while genuinely different lifts
+// ("Bench Press" vs "Incline Bench Press") still keep distinct keys.
+export function normalizeExerciseName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => EXERCISE_ABBREVIATIONS[word] ?? word)
+    .flatMap((word) => word.split(/\s+/))
+    .map(singularize)
+    .sort()
+    .join(" ");
+}
+
+// Groups of distinct stored names that look like the same exercise. The
+// suggested canonical name is whichever spelling has the most sets behind it
+// (ties broken alphabetically) — the one most likely to be how the user
+// actually wants it written.
+export type MergeSuggestion = { canonical: string; names: string[] };
+
+export function suggestExerciseMergeGroups(usage: ExerciseUsage[]): MergeSuggestion[] {
+  const groups = new Map<string, ExerciseUsage[]>();
+
+  for (const entry of usage) {
+    const key = normalizeExerciseName(entry.name);
+    if (!key) continue;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+
+  return Array.from(groups.values())
+    .filter((group) => group.length > 1)
+    .map((group) => {
+      const canonical = group
+        .slice()
+        .sort((a, b) => b.setCount - a.setCount || a.name.localeCompare(b.name))[0].name;
+      return { canonical, names: group.map((entry) => entry.name).sort((a, b) => a.localeCompare(b)) };
+    })
+    .sort((a, b) => a.canonical.localeCompare(b.canonical));
+}
+
 // Epley formula: estimated 1-rep max from a single set's weight and reps.
 export function estimateOneRepMax(weight: number, reps: number): number {
   return weight * (1 + reps / 30);

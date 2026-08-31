@@ -55,7 +55,7 @@ export async function Header() {
                 href="/data"
                 className="hidden rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 sm:inline-block dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                Data & Backups
+                Settings
               </a>
               <form action={signOut}>
                 <button

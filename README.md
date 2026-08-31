@@ -82,6 +82,20 @@ WHOOP_CLIENT_SECRET=<your-whoop-client-secret>
 
 Create these in the [Whoop Developer Dashboard](https://developer.whoop.com/). The redirect URI registered there must exactly match `<your-deployed-origin>/api/auth/callback/whoop` — add one entry per origin you use (production, any preview URLs, `http://localhost:3000` for local dev). Both variables are server-only.
 
+Daily push reminders (Settings → Notifications) need a VAPID key pair — no third-party account, generate your own:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+```
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<the generated public key>
+VAPID_PRIVATE_KEY=<the generated private key>
+VAPID_SUBJECT=mailto:you@example.com
+```
+
+The public key is exposed to the browser deliberately (it's how a subscribing browser proves it to *your* server); `VAPID_PRIVATE_KEY` is server-only and must never gain a `NEXT_PUBLIC_` prefix. `VAPID_SUBJECT` must be a `mailto:` URI — push services use it to reach you if a server misbehaves. All three are optional: leave them unset and the Notifications section just reports "not configured" instead of erroring.
+
 ## Supabase
 
 Supabase client helpers live in `src/lib/supabase/`:
@@ -416,6 +430,21 @@ Before this, "installed" meant an icon and a splash screen but zero actual resil
 
 Verified two ways. End-to-end in a real browser: visiting a page registers and activates the service worker, and the three precache URLs genuinely land in Cache Storage. The actual offline-fallback *logic*, though, needed a different approach — Playwright's `context.setOffline()` didn't reliably reach the service worker's own separate execution target (a known CDP limitation: the emulated "offline" network condition applies to the page's target, not necessarily a Service Worker's own background one), so a real-browser "go offline, navigate, check the page" test couldn't actually prove the network-failure branch runs — it only proved the *page's* network was offline, not that the service worker's *own* internal `fetch()` call was blocked. Loading the real `public/sw.js` file directly in a sandboxed context (Node's `vm` module) with a controllable fake `fetch` sidesteps that limitation entirely and verified all of it directly: precache resilience to a partial failure, the offline-fallback branch actually firing when the network fetch rejects, the online branch correctly returning the live response without caching it, cache-first behavior for static assets (fetched once, served from cache on the second request with no second fetch), and that non-GET and cross-origin requests never get intercepted at all.
 
+#### Push Notifications
+
+A daily reminder (Settings → Notifications, `/data`) for anything still outstanding — habits not yet checked off, contacts due for a reach-out — sent once a day at a fixed time regardless of whether the app is even open. Deliberately silent when nothing is due: a notification that says "nothing to do today!" every day trains you to ignore it, so `buildDailyReminderContent` returns `null` and the cron simply doesn't send anything.
+
+- `supabase/migrations/20260817000000_create_push_subscriptions.sql` — `push_subscriptions` table (one row per subscribed browser/device, so the same account can get reminders on both a phone and a laptop), holding the push service `endpoint` plus the `p256dh`/`auth` encryption keys Web Push requires. RLS scoped to `auth.uid() = user_id` for select/insert/update/delete — the update policy matters as much as insert, since re-subscribing from the same browser (after a permission reset or a redeployed VAPID key) upserts onto `unique (user_id, endpoint)` rather than erroring.
+- `src/lib/push-utils.ts` — `urlBase64ToUint8Array()`, the standard conversion from the VAPID public key's base64 string form to the raw `Uint8Array` `PushManager.subscribe()`'s `applicationServerKey` requires.
+- `src/lib/push-notification-content.ts` — `buildDailyReminderContent(habits, todayLocalDate, contacts)`, the pure function deciding what the reminder says (or whether it sends at all), reusing the same `isContactVisible`/due-habit logic the dashboard cards themselves already compute from — the notification and the card can never disagree about what's actually due.
+- `src/app/actions/push.ts` — `subscribeToPush()` (upserts the browser's subscription for the signed-in user) and `unsubscribeFromPush()` (deletes it), both auth-gated the same way every other Server Action in this app is.
+- `src/app/api/cron/push-reminders/route.ts` — the sending side, invoked daily by the Vercel Cron Job in `vercel.json` (`0 12 * * *`, chosen to land in the morning for an Eastern-US-based user — the same assumption `WeatherWidget`'s desktop default already makes, since nothing in this single-user app stores an actual timezone). Same `CRON_SECRET` bearer-token check as the existing backup cron, same single-user `auth.admin.listUsers()` assumption, same admin/service-role client for the no-session context. Loads every subscription plus enough habit/contact data to compute today's status, builds the reminder content, and sends via `web-push`'s `sendNotification()` to each subscription — a 404/410 response from the push service means that subscription is dead (browser data cleared, app uninstalled), so it's deleted rather than retried forever.
+- `public/sw.js` — added `push` and `notificationclick` listeners alongside the existing offline-support ones. `push` parses the notification payload as JSON (falling back to plain text if that fails, so a malformed payload degrades gracefully instead of silently dropping the notification) and calls `registration.showNotification()`. `notificationclick` focuses an already-open dashboard tab if one exists rather than always spawning a new one.
+- `src/components/dashboard/NotificationSettings.tsx` — the Settings-page toggle: checks `Notification.permission` and any existing `PushSubscription` on mount, and on enable, requests permission, subscribes via `PushManager.subscribe()`, and saves the subscription server-side — rolling the browser-side subscription back with `.unsubscribe()` if the server save fails, so the two never end up out of sync. Renders "not configured" when no VAPID key is present (e.g. a fork that hasn't set one up) rather than a broken button.
+- `src/app/data/page.tsx` / `src/components/dashboard/Header.tsx` — the page (still at `/data`, only its URL now undersells what's there) gained a "Notifications" section ahead of Export and Restore, and its header link/title were broadened from "Data & Backups" to **Settings** to match.
+
+Verified with the full automated suite (unit tests for `push-utils` and `push-notification-content`, `eslint`, `tsc`/production build) plus a `vm`-module test mirroring the offline-support technique above: the real `public/sw.js` source is loaded into a sandboxed context with mocked `self`/`caches`/`clients` globals, and its actual `push`/`notificationclick` listeners are invoked directly — asserting a well-formed JSON payload shows a notification with the right title/body/tag, a malformed payload falls back to plain text instead of throwing, a `data`-less push still shows a fallback notification, and `notificationclick` focuses an existing tab when one is open and opens a new one when none is. End-to-end delivery through a real push service couldn't be exercised in this environment (no live VAPID keys or authenticated Supabase session available here), so that step is left for a real deployment with `NEXT_PUBLIC_VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` configured.
+
 ### Jump-to Navigation Rail
 
 A persistent way to jump straight to any of the 12 dashboard sections, without needing to open Today at a Glance first. Reuses that feature's own scroll-to-section mechanism (`document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })`) rather than inventing a second one.
@@ -615,7 +644,7 @@ Verified with a Playwright preview (synthetic tasks: overdue, due today, due tom
 
 1. Push this repository to GitHub (or your Git provider of choice).
 2. Import the project into [Vercel](https://vercel.com/new).
-3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TODOIST_API_TOKEN`, `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `CRON_SECRET` as Environment Variables in the Vercel project settings.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TODOIST_API_TOKEN`, `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` as Environment Variables in the Vercel project settings.
 4. Deploy. Vercel will detect the Next.js framework automatically, including the weekly backup Cron Job defined in `vercel.json`.
 5. In Google Cloud Console, make sure `https://<your-vercel-domain>/api/auth/callback/google` is registered as an authorized redirect URI for the OAuth client.
 6. In the Whoop Developer Dashboard, make sure `https://<your-vercel-domain>/api/auth/callback/whoop` is registered as a redirect URI for the OAuth client.

@@ -112,3 +112,41 @@ self.addEventListener("fetch", (event) => {
   // navigations, etc.) intentionally falls through with no respondWith()
   // call — always live network, never cached.
 });
+
+// A push message's payload is whatever JSON the sending server (the daily
+// reminder cron — see src/app/api/cron/push-reminders) put in it; falling
+// back to plain text keeps this from silently dropping a malformed payload.
+self.addEventListener("push", (event) => {
+  let payload = { title: "Life Dashboard", body: "" };
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { title: "Life Dashboard", body: event.data.text() };
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "Life Dashboard", {
+      body: payload.body,
+      tag: payload.tag || "life-dashboard-notification",
+      icon: "/icon-192",
+    }),
+  );
+});
+
+// Tapping the notification focuses an already-open dashboard tab if one
+// exists, rather than always opening a new one.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsList) => {
+      for (const client of clientsList) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow("/");
+    }),
+  );
+});

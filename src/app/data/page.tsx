@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { DataRestorePanel } from "@/components/dashboard/DataRestorePanel";
+import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
 
-export default function DataPage() {
+export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
       <Link
@@ -12,8 +13,21 @@ export default function DataPage() {
       </Link>
 
       <h1 className="mt-4 text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Data & Backups
+        Settings
       </h1>
+
+      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Notifications
+        </h2>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          Get a daily reminder if any habits are still outstanding or contacts are due for a
+          reach-out. Sent once a day at a fixed time — not tied to when you actually open the app.
+        </p>
+        <div className="mt-3">
+          <NotificationSettings />
+        </div>
+      </section>
 
       <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">

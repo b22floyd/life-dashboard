@@ -17,7 +17,6 @@ const SECTION_CATEGORIES: Record<string, SectionCategory> = {
   "journal-section": "personal-growth",
   "cleaning-section": "home-life",
   "meal-plan-section": "home-life",
-  "monarch-section": "home-life",
   "contacts-section": "relationships",
   "health-section": "health",
   "workout-section": "health",

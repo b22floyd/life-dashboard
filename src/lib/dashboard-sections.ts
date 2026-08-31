@@ -10,7 +10,6 @@ export const DASHBOARD_SECTION_IDS = [
   "cleaning-section",
   "contacts-section",
   "meal-plan-section",
-  "monarch-section",
   "journal-section",
   "health-section",
   "workout-section",

@@ -13,7 +13,6 @@ const NAV_SECTIONS = [
   { id: "cleaning-section", label: "Cleaning Reminders" },
   { id: "contacts-section", label: "Contacts" },
   { id: "meal-plan-section", label: "Meal Plan" },
-  { id: "monarch-section", label: "Monarch" },
   { id: "journal-section", label: "Journal" },
   { id: "health-section", label: "Health" },
   { id: "workout-section", label: "Weight Training" },

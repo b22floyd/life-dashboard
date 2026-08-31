@@ -13,7 +13,6 @@ import { CleaningCard } from "@/components/dashboard/CleaningCard";
 import { ContactsCard } from "@/components/dashboard/ContactsCard";
 import { MealPlanGroceryCard } from "@/components/dashboard/MealPlanGroceryCard";
 import { EventsCard } from "@/components/dashboard/EventsCard";
-import { MonarchCard } from "@/components/dashboard/MonarchCard";
 import { JournalCardLoader } from "@/components/dashboard/JournalCardLoader";
 import { WorkoutCardLoader } from "@/components/dashboard/WorkoutCardLoader";
 import { HealthCard } from "@/components/dashboard/HealthCard";
@@ -146,14 +145,6 @@ export default async function Home({
           <Suspense fallback={<MealPlanGroceryCardSkeleton />}>
             <MealPlanGroceryCard />
           </Suspense>
-        </SectionErrorBoundary>
-      ),
-    },
-    {
-      id: "monarch-section",
-      node: (
-        <SectionErrorBoundary key="monarch-section" label="Monarch">
-          <MonarchCard />
         </SectionErrorBoundary>
       ),
     },

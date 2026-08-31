@@ -161,7 +161,16 @@ The parsed result is never saved directly — it populates the same editable bui
 
 This needed a new migration: `session_exercises` had select/insert/delete policies but **no update policy**, so a rename would have silently affected zero rows under RLS. `20260816000000_add_session_exercises_update_policy.sql` adds it, scoped the same way as the others (joining back to `workout_sessions` and checking `user_id`).
 
-The matching logic is pure and was verified with a standalone test covering 32 cases — including a deliberate set of pairs that must *stay* distinct (Bench Press vs Incline Bench Press, Squat vs Front Squat, Deadlift vs Romanian Deadlift, Bicep vs Hammer Curl, Leg Press vs Leg Curl), since over-merging is the damaging failure here. The UI was then verified end-to-end in a headless browser against synthetic sessions containing known duplicates.
+The matching logic is pure and covered by `workout-utils.test.ts` (see [Tests](#tests)) — including a deliberate set of pairs that must *stay* distinct (Bench Press vs Incline Bench Press, Squat vs Front Squat, Deadlift vs Romanian Deadlift, Bicep vs Hammer Curl, Leg Press vs Leg Curl), since over-merging is the damaging failure here. The UI was then verified end-to-end in a headless browser against synthetic sessions containing known duplicates.
+
+#### Personal record highlighting
+
+Saving a workout now checks whether any exercise in it just beat its own all-time best, and celebrates it right there instead of leaving it to be noticed later by eyeballing the progress chart.
+
+- `src/lib/workout-utils.ts` — `detectNewPersonalRecords(priorSessions, newSession)`: for each exercise in the session just logged, takes its best set by estimated 1RM (same "best set" definition `getOneRepMaxSeries` already uses for the chart) and compares it against the best 1RM across every prior session for that exact exercise (matched case-insensitively, same as the merge feature above). An exercise with no prior history at all is deliberately *not* flagged — there's nothing yet to have beaten, and treating every brand-new exercise as a "record" would cheapen the ones that actually are one. If the same exercise appears twice in one session (a rare manual-entry slip), only the single best set across both is compared, so one session never produces two separate "PR" results for the same lift.
+- `src/components/dashboard/WorkoutCard.tsx` — `handleSave` computes new records against `localSessions` as it stood *before* the optimistic session is prepended (never against the array it's about to join), and shows them in a dismissible emerald banner under the Save button — "🎉 New personal record! Bench Press: 196 lb est. 1RM (up from 180 lb)" — following the same optimistic-then-revert convention as the rest of this form: the banner appears the instant the (optimistic) session is added, and clears if the save turns out to have failed, right alongside the rest of the optimistic state being rolled back.
+
+Verified with a dedicated test suite (beats-prior-best, fails-to-beat, no-prior-history, best set within a multi-set session rather than the first one logged, comparing against the true historical max rather than just the most recent session, case-insensitive matching, multiple simultaneous PRs in one session, and the duplicate-exercise-in-one-session collapse), then end-to-end in a headless browser: logging a set that beats history shows the correct banner text and numbers immediately, and a non-PR save shows no banner at all.
 
 ### Work Tasks (Todoist)
 

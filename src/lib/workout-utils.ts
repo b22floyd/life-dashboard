@@ -170,3 +170,55 @@ export function getOneRepMaxSeries(
     .filter((point): point is { date: string; oneRepMax: number } => point !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+
+export type PersonalRecord = { exerciseName: string; oneRepMax: number; previousBest: number };
+
+// Flags exercises in a just-logged session whose best set (by estimated
+// 1RM, same "best set" definition as getOneRepMaxSeries) beats every prior
+// session's best for that exercise. Only ever compares against *prior*
+// sessions — never against other exercises within newSession itself — so
+// this is safe to call with newSession already appended to the full history
+// as much as with it kept separate.
+//
+// An exercise with no prior history at all is deliberately not a "record" —
+// there's nothing yet to have beaten, and treating first-time logging as a
+// PR would turn every brand-new exercise into a celebration, which cheapens
+// the ones that actually mean something.
+//
+// If the same exercise appears more than once in newSession (a rare manual-
+// entry slip, or two different variations someone typed the same name for),
+// only the single best set across all of them is compared — never several
+// separate "PR" results for one exercise from one session.
+export function detectNewPersonalRecords(
+  priorSessions: WorkoutSession[],
+  newSession: WorkoutSession,
+): PersonalRecord[] {
+  const bestInSession = new Map<string, { displayName: string; oneRepMax: number }>();
+
+  for (const exercise of newSession.exercises) {
+    const key = exercise.exercise_name.trim().toLowerCase();
+    if (!key) continue;
+
+    const oneRepMaxes = exercise.sets.map((set) => estimateOneRepMax(set.weight, set.reps));
+    if (oneRepMaxes.length === 0) continue;
+    const best = Math.max(...oneRepMaxes);
+
+    const existing = bestInSession.get(key);
+    if (!existing || best > existing.oneRepMax) {
+      bestInSession.set(key, { displayName: exercise.exercise_name.trim(), oneRepMax: best });
+    }
+  }
+
+  const records: PersonalRecord[] = [];
+  for (const { displayName, oneRepMax } of bestInSession.values()) {
+    const priorSeries = getOneRepMaxSeries(priorSessions, displayName);
+    if (priorSeries.length === 0) continue;
+
+    const previousBest = Math.max(...priorSeries.map((point) => point.oneRepMax));
+    if (oneRepMax > previousBest) {
+      records.push({ exerciseName: displayName, oneRepMax, previousBest });
+    }
+  }
+
+  return records.sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
+}

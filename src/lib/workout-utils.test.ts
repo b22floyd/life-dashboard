@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectNewPersonalRecords,
   estimateOneRepMax,
   getExerciseNames,
   getExerciseUsage,
@@ -215,5 +216,94 @@ describe("getOneRepMaxSeries", () => {
   it("matches exercise names case-insensitively", () => {
     const sessions = [session("s1", [{ name: "SQUAT", sets: [{ weight: 200, reps: 5 }] }])];
     expect(getOneRepMaxSeries(sessions, "squat")).toHaveLength(1);
+  });
+});
+
+describe("detectNewPersonalRecords", () => {
+  it("flags an exercise that beats its prior best", () => {
+    const prior = [session("s1", [{ name: "Bench Press", sets: [{ weight: 135, reps: 10 }] }])]; // ~180 est 1RM
+    const newSession = session("s2", [{ name: "Bench Press", sets: [{ weight: 155, reps: 8 }] }]); // ~196 est 1RM
+
+    const records = detectNewPersonalRecords(prior, newSession);
+    expect(records).toHaveLength(1);
+    expect(records[0].exerciseName).toBe("Bench Press");
+    expect(records[0].oneRepMax).toBeCloseTo(estimateOneRepMax(155, 8));
+    expect(records[0].previousBest).toBeCloseTo(estimateOneRepMax(135, 10));
+  });
+
+  it("does not flag an exercise that fails to beat its prior best", () => {
+    const prior = [session("s1", [{ name: "Squat", sets: [{ weight: 225, reps: 5 }] }])];
+    const newSession = session("s2", [{ name: "Squat", sets: [{ weight: 185, reps: 5 }] }]);
+    expect(detectNewPersonalRecords(prior, newSession)).toEqual([]);
+  });
+
+  it("does not flag an exercise with no prior history at all", () => {
+    // Nothing to have beaten yet — logging something for the first time
+    // isn't a "record", it's just data.
+    const newSession = session("s1", [{ name: "Face Pull", sets: [{ weight: 40, reps: 15 }] }]);
+    expect(detectNewPersonalRecords([], newSession)).toEqual([]);
+  });
+
+  it("compares against the best set of any prior session, not just the most recent", () => {
+    const prior = [
+      session("s1", [{ name: "Deadlift", sets: [{ weight: 315, reps: 5 }] }]), // ~367 est 1RM, the real high point
+      session("s2", [{ name: "Deadlift", sets: [{ weight: 225, reps: 5 }] }]), // ~262 est 1RM, most recent but lower
+    ];
+    const newSession = session("s3", [{ name: "Deadlift", sets: [{ weight: 275, reps: 5 }] }]); // ~320, beats s2 but not s1
+    expect(detectNewPersonalRecords(prior, newSession)).toEqual([]);
+  });
+
+  it("uses the best set within the new session, not the first one logged", () => {
+    const prior = [session("s1", [{ name: "Overhead Press", sets: [{ weight: 95, reps: 8 }] }])];
+    const newSession = session("s2", [
+      {
+        name: "Overhead Press",
+        sets: [
+          { weight: 85, reps: 5 }, // warmup, lower than prior best
+          { weight: 105, reps: 6 }, // the actual PR set
+        ],
+      },
+    ]);
+    const records = detectNewPersonalRecords(prior, newSession);
+    expect(records).toHaveLength(1);
+    expect(records[0].oneRepMax).toBeCloseTo(estimateOneRepMax(105, 6));
+  });
+
+  it("matches exercise names case-insensitively against prior history", () => {
+    const prior = [session("s1", [{ name: "bench press", sets: [{ weight: 135, reps: 10 }] }])];
+    const newSession = session("s2", [{ name: "Bench Press", sets: [{ weight: 155, reps: 8 }] }]);
+    expect(detectNewPersonalRecords(prior, newSession)).toHaveLength(1);
+  });
+
+  it("collapses a duplicate exercise within the same session into a single result", () => {
+    const prior = [session("s1", [{ name: "Row", sets: [{ weight: 100, reps: 8 }] }])];
+    const newSession = session("s2", [
+      { name: "Row", sets: [{ weight: 90, reps: 8 }] },
+      { name: "Row", sets: [{ weight: 120, reps: 8 }] }, // the actual best, logged as a second entry
+    ]);
+    const records = detectNewPersonalRecords(prior, newSession);
+    expect(records).toHaveLength(1);
+    expect(records[0].oneRepMax).toBeCloseTo(estimateOneRepMax(120, 8));
+  });
+
+  it("handles multiple distinct PRs in one session", () => {
+    const prior = [
+      session("s1", [
+        { name: "Bench Press", sets: [{ weight: 135, reps: 10 }] },
+        { name: "Squat", sets: [{ weight: 225, reps: 5 }] },
+      ]),
+    ];
+    const newSession = session("s2", [
+      { name: "Bench Press", sets: [{ weight: 155, reps: 8 }] }, // PR
+      { name: "Squat", sets: [{ weight: 185, reps: 5 }] }, // not a PR
+    ]);
+    const records = detectNewPersonalRecords(prior, newSession);
+    expect(records.map((r) => r.exerciseName)).toEqual(["Bench Press"]);
+  });
+
+  it("ignores an exercise entry with no sets", () => {
+    const prior = [session("s1", [{ name: "Curl", sets: [{ weight: 30, reps: 10 }] }])];
+    const newSession = session("s2", [{ name: "Curl", sets: [] }]);
+    expect(detectNewPersonalRecords(prior, newSession)).toEqual([]);
   });
 });

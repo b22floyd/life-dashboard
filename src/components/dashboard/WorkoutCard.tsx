@@ -11,7 +11,9 @@ import {
 import { getLocalDateString } from "@/lib/date-utils";
 import {
   WORKOUT_CATEGORIES,
+  detectNewPersonalRecords,
   getExerciseNames,
+  type PersonalRecord,
   type WorkoutCategory,
   type WorkoutSession,
 } from "@/lib/workout-utils";
@@ -60,6 +62,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
   const [exercises, setExercises] = useState<EditableExercise[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
+  const [newRecords, setNewRecords] = useState<PersonalRecord[]>([]);
   const router = useRouter();
 
   const [historyExpanded, setHistoryExpanded] = useState(false);
@@ -163,6 +166,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
 
   function handleSave() {
     setSaveError(null);
+    setNewRecords([]);
 
     if (!category) {
       setSaveError("Select a category before saving.");
@@ -214,6 +218,12 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
       })),
     };
 
+    // Compared against localSessions as it stood right before this save —
+    // not the array optimisticSession is about to be prepended to — so a
+    // PR is always measured against real prior history, never against
+    // itself.
+    setNewRecords(detectNewPersonalRecords(localSessions, optimisticSession));
+
     setLocalSessions((current) => [optimisticSession, ...current]);
     setSessionName("");
     setCategory(null);
@@ -231,6 +241,7 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
         // rather than leaving them to retype it, and drop the optimistic
         // entry rather than waiting on a refresh that wouldn't fix it.
         setSaveError(result.error);
+        setNewRecords([]);
         setLocalSessions((current) => current.filter((s) => s.id !== optimisticSession.id));
         setSessionName(savedName);
         setCategory(savedCategory);
@@ -393,6 +404,36 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
           >
             {isSaving ? "Saving…" : "Save Workout"}
           </button>
+
+          {newRecords.length > 0 && (
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  🎉 New personal record{newRecords.length > 1 ? "s" : ""}!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setNewRecords([])}
+                  aria-label="Dismiss"
+                  className="shrink-0 text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-200"
+                >
+                  ✕
+                </button>
+              </div>
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {newRecords.map((record) => (
+                  <li key={record.exerciseName} className="text-sm text-emerald-700 dark:text-emerald-300">
+                    <span className="font-medium">{record.exerciseName}</span>:{" "}
+                    {Math.round(record.oneRepMax)} lb est. 1RM
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {" "}
+                      (up from {Math.round(record.previousBest)} lb)
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-6">

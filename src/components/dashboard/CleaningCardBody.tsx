@@ -103,6 +103,9 @@ export function CleaningCardBody({ tasks }: { tasks: CleaningTaskWithStatus[] })
   }
 
   function handleDelete(taskId: string) {
+    if (!window.confirm("Delete this cleaning task? This also deletes its completion history.")) {
+      return;
+    }
     setActionError(null);
     setLocalTasks((current) => current.filter((t) => t.id !== taskId));
     startActionTransition(async () => {

@@ -78,6 +78,9 @@ export function HabitsCardBody({ habits }: { habits: HabitWithCompletions[] }) {
   }
 
   function handleDelete(habitId: string) {
+    if (!window.confirm("Delete this habit? This also deletes its entire completion history and streak.")) {
+      return;
+    }
     setActionError(null);
     setLocalHabits((current) => current.filter((h) => h.id !== habitId));
     startActionTransition(async () => {

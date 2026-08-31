@@ -45,6 +45,9 @@ export function AnnualGoalsCardBody({ goals }: { goals: AnnualGoal[] }) {
   const [, startDeleteTransition] = useTransition();
 
   function handleDelete(goalId: string) {
+    if (!window.confirm("Delete this goal? This also deletes its quarterly checkpoints and notes.")) {
+      return;
+    }
     setActionError(null);
     setLocalGoals((current) => current.filter((goal) => goal.id !== goalId));
     startDeleteTransition(async () => {

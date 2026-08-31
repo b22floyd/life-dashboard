@@ -677,6 +677,21 @@ Already solid, confirmed rather than assumed: every icon-only button in the app 
 
 Verified with the full lint/test/build cycle, plus a temporary unauthenticated preview page (removed after testing, along with its middleware exemption — this app has no live Supabase project in this environment, so the real dashboard behind auth couldn't be reached directly) driving the search dialog with real keyboard events in a headless browser: confirmed the input receives focus on open, Tab never moves focus outside the dialog no matter how many times it's pressed, and Escape both closes the dialog and returns focus to the Search button that opened it — plus confirmed the login form's error message renders with `role="alert"` when a sign-in attempt fails.
 
+### Consistent Delete Confirmations
+
+`JournalCard` was the only card whose delete button asked "are you sure?" first — every other one-click delete (`WorkoutCard`'s session delete, `HabitsCardBody`'s habit delete, `ContactsCardBody`'s contact delete, `AnnualGoalsCardBody`'s goal delete, `CleaningCardBody`'s task delete) fired immediately, even though each of those destroys strictly more cascading data than a single journal entry — a whole session's exercises and sets, a habit's entire completion history and streak, a contact's full contact-log, a goal's quarterly checkpoints and notes. Added the same `window.confirm(...)` guard already used in `JournalCard` to all five, each with wording naming exactly what else gets deleted along with it (e.g. "This also deletes its entire completion history and streak.") rather than a generic "are you sure?" — since the whole point is making the blast radius visible before it's irreversible.
+
+### Missing Test Coverage
+
+Two pure-logic files had non-obvious timezone/boundary math and no automated tests — a gap given this app's own established lesson (see Tests, above) that exactly this kind of logic is where bugs have hidden before.
+
+- `src/lib/google-calendar-utils.test.ts` (new) — covers `parseEventDate`'s UTC-midnight-rollback fix, `isSameLocalDay`, `formatEventTime`, and `isEventStartingSoon`'s 60-minutes-ahead/30-minutes-grace window including both boundaries exactly.
+- `src/lib/weight-utils.test.ts` (new) — covers `computeWeekOverWeekChange`'s Sunday-anchored week windows (including entries landing exactly on a week-start/week-end boundary date) and `estimateWeeksToGoal`'s every branch (insufficient data on too few entries or too little elapsed time, already-at-goal, no-progress in both loss and gain directions, and the weeks-remaining projection for both a lower and a higher goal weight) — real calendar dates verified with Node before writing expectations, per the project's own timezone-safety convention, not hand-guessed.
+
+### Missing Database Indexes
+
+`annual_goals`, `cleaning_tasks`, and `contacts` were the only three user-scoped tables in the schema without an index on `user_id` — every sibling table (`workout_sessions`, `personal_tasks`, `habits`, `grocery_items`/`grocery_staples`, `weight_entries`) already had one from when it was created. `supabase/migrations/20260819000000_add_missing_user_id_indexes.sql` adds the same `(user_id, <the column each query already orders by>)` shape used everywhere else in the schema — `(user_id, position)` for `annual_goals`, `(user_id, created_at)` for `cleaning_tasks` and `contacts`. Read-performance-only, no behavior change; harmless on a single-user table today, but free insurance against a full scan becoming the slow part of a page load after a few years of daily entries.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

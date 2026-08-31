@@ -70,6 +70,9 @@ export function ContactsCardBody({ contacts }: { contacts: ContactWithStatus[] }
   const [recentlyContactedExpanded, setRecentlyContactedExpanded] = useState(false);
 
   function handleDelete(contactId: string) {
+    if (!window.confirm("Delete this contact? This also deletes their entire contact-log history.")) {
+      return;
+    }
     setActionError(null);
     setLocalContacts((current) => current.filter((contact) => contact.id !== contactId));
     startActionTransition(async () => {

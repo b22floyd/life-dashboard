@@ -83,6 +83,9 @@ export function WorkoutCard({ sessions }: { sessions: WorkoutSession[] | null })
   const knownExerciseNames = useMemo(() => getExerciseNames(localSessions), [localSessions]);
 
   function handleDeleteSession(sessionId: string) {
+    if (!window.confirm("Delete this session? This removes all its exercises and sets too.")) {
+      return;
+    }
     setDeleteError(null);
     setLocalSessions((current) => current.filter((session) => session.id !== sessionId));
     startDeleteTransition(async () => {

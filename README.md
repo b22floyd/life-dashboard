@@ -687,6 +687,7 @@ Two pure-logic files had non-obvious timezone/boundary math and no automated tes
 
 - `src/lib/google-calendar-utils.test.ts` (new) — covers `parseEventDate`'s UTC-midnight-rollback fix, `isSameLocalDay`, `formatEventTime`, and `isEventStartingSoon`'s 60-minutes-ahead/30-minutes-grace window including both boundaries exactly.
 - `src/lib/weight-utils.test.ts` (new) — covers `computeWeekOverWeekChange`'s Sunday-anchored week windows (including entries landing exactly on a week-start/week-end boundary date) and `estimateWeeksToGoal`'s every branch (insufficient data on too few entries or too little elapsed time, already-at-goal, no-progress in both loss and gain directions, and the weeks-remaining projection for both a lower and a higher goal weight) — real calendar dates verified with Node before writing expectations, per the project's own timezone-safety convention, not hand-guessed.
+- `src/lib/whoop-utils.test.ts` (new) — covers `formatSleepDuration`'s minute-rounding (not truncation) and `recoveryColorClass`'s green/yellow/red boundaries at exactly 67 and 34.
 
 ### Missing Database Indexes
 

@@ -692,6 +692,14 @@ Two pure-logic files had non-obvious timezone/boundary math and no automated tes
 
 `annual_goals`, `cleaning_tasks`, and `contacts` were the only three user-scoped tables in the schema without an index on `user_id` — every sibling table (`workout_sessions`, `personal_tasks`, `habits`, `grocery_items`/`grocery_staples`, `weight_entries`) already had one from when it was created. `supabase/migrations/20260819000000_add_missing_user_id_indexes.sql` adds the same `(user_id, <the column each query already orders by>)` shape used everywhere else in the schema — `(user_id, position)` for `annual_goals`, `(user_id, created_at)` for `cleaning_tasks` and `contacts`. Read-performance-only, no behavior change; harmless on a single-user table today, but free insurance against a full scan becoming the slow part of a page load after a few years of daily entries.
 
+### Dependency Security Patch (Next.js 16.2.12 → 16.3.3)
+
+`npm audit` flagged 3 high-severity advisories, all transitive through Next's bundled `postcss` (an XSS in CSS stringification, plus a couple of source-map path-traversal issues) and `sharp`/`libvips` (image-processing CVEs) — none directly exploitable in this app's own code, but real vulnerabilities in dependencies this app ships regardless. Fixed by bumping to `16.3.3`, the latest 16.x patch/minor release — not a major-version jump, so none of the breaking-change risk `AGENTS.md` warns about for this pinned Next version applies here. `npm audit` now reports 0 vulnerabilities.
+
+One incidental breakage surfaced by the bundled TypeScript version this pulled in: `habit-utils.test.ts` spread a `[number, number, number] | [number, number, number, number]`-typed tuple into a function call (`localIso(...createdAtLocal)`), which the newer TypeScript rejects as "a spread argument must either have a tuple type or be passed to a rest parameter" even though the original code was correct under the old version. Fixed by destructuring the tuple explicitly instead of spreading it — same behavior, no longer relies on a compiler inference edge case.
+
+Verified with the full lint/test/build cycle, `npm audit` showing zero vulnerabilities, and a real headless-browser check (`/login`, `/privacy`, `/offline`) confirming the app still serves correctly with the security headers intact and no new console errors under the upgraded version.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (or your Git provider of choice).

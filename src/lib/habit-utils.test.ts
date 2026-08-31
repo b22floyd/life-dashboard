@@ -15,11 +15,12 @@ function habit(
   createdAtLocal: [number, number, number] | [number, number, number, number],
   completedDates: string[],
 ): HabitWithCompletions {
+  const [year, month, day, hour] = createdAtLocal;
   return {
     id: "h1",
     name: "Test Habit",
     position: 0,
-    created_at: localIso(...createdAtLocal),
+    created_at: hour === undefined ? localIso(year, month, day) : localIso(year, month, day, hour),
     completedDates,
   };
 }

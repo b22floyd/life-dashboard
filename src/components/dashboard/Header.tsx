@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DailyGlance } from "./DailyGlance";
-import { DailyGlanceSkeleton, WeatherSkeleton } from "./CardSkeletons";
+import { DailyGlanceSkeleton, GlobalSearchSkeleton, WeatherSkeleton } from "./CardSkeletons";
+import { GlobalSearchLoader } from "./GlobalSearchLoader";
 import { HeaderDate } from "./HeaderDate";
 import { SectionErrorBoundary } from "./SectionErrorBoundary";
 import { WeatherWidgetLoader } from "./WeatherWidgetLoader";
@@ -23,6 +24,13 @@ export async function Header() {
           <HeaderDate />
         </div>
         <div className="flex items-center gap-4">
+          {user && (
+            <SectionErrorBoundary label="Search">
+              <Suspense fallback={<GlobalSearchSkeleton />}>
+                <GlobalSearchLoader />
+              </Suspense>
+            </SectionErrorBoundary>
+          )}
           <SectionErrorBoundary label="Weather">
             <Suspense fallback={<WeatherSkeleton />}>
               <WeatherWidgetLoader />

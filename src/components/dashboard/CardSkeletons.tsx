@@ -132,3 +132,7 @@ export function WeatherSkeleton() {
 export function DailyGlanceSkeleton() {
   return <Skeleton className="h-8 w-36 rounded-full" />;
 }
+
+export function GlobalSearchSkeleton() {
+  return <Skeleton className="h-8 w-24 rounded-full" />;
+}

@@ -62,13 +62,7 @@ export async function updateSession(request: NextRequest) {
     // startup image" iOS shows before the page ever loads is just a broken
     // image / the default blank white screen this whole thing exists to fix.
     request.nextUrl.pathname.startsWith("/apple-splash/");
-  // A temporary, no-data diagnostic page (see its own file comment) — public
-  // so it can be opened straight from a phone's home screen icon without
-  // needing to be signed in first, which is exactly the launch context it
-  // exists to inspect.
-  const isDebugRoute = request.nextUrl.pathname.startsWith("/debug-splash");
-
-  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute && !isPwaAssetRoute && !isDebugRoute) {
+  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute && !isPwaAssetRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

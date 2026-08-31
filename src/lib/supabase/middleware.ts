@@ -54,6 +54,12 @@ export async function updateSession(request: NextRequest) {
       "/apple-icon",
       "/icon-192",
       "/icon-512",
+      // The service worker script itself (public/sw.js) — the proxy
+      // matcher's negative-lookahead only excludes image extensions, not
+      // .js, so without this a redirect-to-/login response would get
+      // registered as the service worker (or served back for the browser's
+      // own periodic update-check fetch) instead of the real script.
+      "/sw.js",
     ].includes(request.nextUrl.pathname) ||
     // iOS's native standalone-launch splash image — dynamically-sized
     // (/apple-splash/<width>x<height>), so it needs a prefix match rather
@@ -62,7 +68,16 @@ export async function updateSession(request: NextRequest) {
     // startup image" iOS shows before the page ever loads is just a broken
     // image / the default blank white screen this whole thing exists to fix.
     request.nextUrl.pathname.startsWith("/apple-splash/");
-  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute && !isPwaAssetRoute) {
+  // The service worker's offline navigation fallback (public/sw.js) — has
+  // to be reachable two ways that both predate any session being known:
+  // the service worker's own install-time precache fetch (which happens
+  // the moment the app is first opened, before or regardless of sign-in),
+  // and being served straight from Cache Storage with no network request
+  // reaching this middleware at all once genuinely offline. A redirect to
+  // /login here would mean the *cached* copy of this page is the login
+  // page instead of the real offline message.
+  const isOfflinePage = request.nextUrl.pathname.startsWith("/offline");
+  if (!user && !isLoginPage && !isPrivacyPage && !isCronRoute && !isPwaAssetRoute && !isOfflinePage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

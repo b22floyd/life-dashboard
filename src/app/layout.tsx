@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppSplashOverlay } from "@/components/AppSplashOverlay";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { APPLE_SPLASH_DEVICES, DEFAULT_SPLASH_DEVICE, splashImageKey } from "@/lib/apple-splash-devices";
 import { pickPhrase } from "@/lib/splash";
 import "./globals.css";
@@ -77,6 +78,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <ServiceWorkerRegister />
         <AppSplashOverlay phrase={pickPhrase()} />
         {children}
       </body>
